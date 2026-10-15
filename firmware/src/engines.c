@@ -4,6 +4,7 @@
  * sounds at power-on. */
 #include "dsp.c"
 #include "cz_patch.h"           /* 1971: ENGI_CZ (15), cz_patch_t and CZ_BYTES stay reserved even with CZ-1 out */
+static cz_patch_t cz_patch[NTRK] __attribute__((section(".pool")));  /* each track's editable tone (format keeps it) */
 #if MELODEE_PROPHET
 #include "eng_prophet_test.c"
 #endif

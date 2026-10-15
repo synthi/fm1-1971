@@ -606,10 +606,9 @@ static void up_ui(uint32_t op, uint32_t k) { up_ui_named(op, k, 0); }
 #include "prophet_user.c"
 #include "native_presets.c"
 #if MELODEE_FLASH
-static union { up_bank_t up; native_fm_t fm; cz_bank_t cz; p5_bank_t p5; } bank_buf __attribute__((section(".pool")));
+static union { up_bank_t up; native_fm_t fm; p5_bank_t p5; } bank_buf __attribute__((section(".pool")));
 static up_bank_t *bank_up(void) { return &bank_buf.up; }
 static native_fm_t *bank_fm(void) { return &bank_buf.fm; }
-static cz_bank_t *bank_cz(void) { return &bank_buf.cz; }
 static p5_bank_t *bank_p5(void) { return &bank_buf.p5; }
 static void bank_claim(uint32_t kind)
 {
@@ -617,8 +616,10 @@ static void bank_claim(uint32_t kind)
         up_cache_index(up_cached);
     if (kind != BK_UP) up_cached = 255;
     if (kind != BK_FM) native_fm_cached = 255;
+#if MELODEE_CZ
     if (kind != BK_CZ) native_cz_cached = 255;
     if (kind != BK_CZOLD) cz_bank_cached = 255;
+#endif
     if (kind != BK_P5) p5_cached = 255;
 }
 #endif
