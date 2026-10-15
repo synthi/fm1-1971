@@ -195,27 +195,18 @@ EXPORT uint32_t web_screen_draws(void) { return (uint32_t)host_sent; }
 EXPORT uint32_t web_now_ms(void) { return fm1_ms; }
 EXPORT uint32_t web_playing(void) { return song.playing; }
 EXPORT uint32_t web_sample_rate(void) { return FS; }
-/* (web/sim/test_sim.mjs) track tr's EVOLVE: EVERY << 8 | AMOUNT */
+/* (web/sim/test_sim.mjs) track tr's EVOLVE: EVERY << 8 | AMOUNT — melodee-tess's. 1971: Tessera is not in the
+ * Melodee v1.3.5 base (it arrives with the M3 transplant), so 0 until then */
 EXPORT uint32_t web_test_evolve(uint32_t tr)
 {
-    return tr < TESSERA_TRACKS ? (uint32_t)tessera.evolve[tr].every << 8 | tessera.evolve[tr].amount : 0u;
+    (void)tr;
+    return 0u;
 }
 
-/* melodee-tess: the demo, a Tessera generator on each track (as KNOB 1 on SEQ > PATTERN sets it), EVOLVE on
- * track 1, then PLAY */
+/* the demo: melodee-tess puts a Tessera generator on each track and presses PLAY; 1971's Melodee base has no
+ * Tessera yet (M3), so the demo is just PLAY — the generators come back with the transplant */
 EXPORT void web_demo(void)
 {
-    static const uint8_t GEN[4] = {TESS_ENG_TURING, TESS_ENG_MORPH, TESS_ENG_MARKOV, TESS_ENG_EUCLID};
-    uint32_t tr, sel = song.sel;
-    for (tr = 0; tr < 4u; tr++) {
-        song.sel = (uint8_t)tr;
-        if (tessera.mode[tr] == TESS_ENG_OFF)
-            tessera_knob(0, GEN[tr]);
-    }
-    song.sel = 0;
-    tessera_evolve_knob(1, 1);               /* EVERY: one setting a turn, OFF -> 1 -> 2 bars; AMOUNT stays 30 % */
-    tessera_evolve_knob(1, 1);
-    song.sel = (uint8_t)sel;
     ui.force = 1;
     if (!song.playing)
         transport_req = 1;
