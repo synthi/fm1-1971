@@ -109,11 +109,7 @@ static const engine_t *const ENGINES[NENGINES] = {
 #else
     &ENG_RETIRED,                /* 5: retired VOICE; stored ID reserved */
 #endif
-#if MELODEE_LEGACY_EXTRAS
-    &ENG_TRIO,
-#else
-    &ENG_RETIRED,                /* 6: retired TRIO; stored ID reserved */
-#endif
+    &ENG_RETIRED,                /* 6: retired TRIO; stored ID reserved (1971: out of the picker) */
 #if MELODEE_LEGACY_EXTRAS
     &ENG_WHEEL,
 #else
