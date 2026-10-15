@@ -138,9 +138,6 @@ static void melodee_init(void)
         song.g[i] = GP[i].def;
     undo_depth++;                             /* (no undo copy of the power-on loads) */
     fm6_init();                               /* every track's FM6 patch: the init voice */
-#if MELODEE_CZ
-    cz_init();
-#endif
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
         track_defaults(t);
@@ -285,9 +282,6 @@ static void fm1_main(void)
                 fm1_enter_uboot();
             }
         }
-        #if MELODEE_CZ
-        cz_service();
-#endif
         fm6_service();                                  /* DX7 SysEx for FM6, a pending FM6 settings save */
 #if MELODEE_OTA
         ed_service();                                   /* web editor SysEx */

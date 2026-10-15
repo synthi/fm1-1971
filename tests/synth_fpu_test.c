@@ -36,38 +36,7 @@ static void fm6_numerics(void)
     printf("fp32 FM6: modulated operator error %.3g; exact Q24 pitch steps\n",error);
 }
 
-static void cz_numerics(void)
-{
-    for(uint32_t raw=0;raw<128;raw++)for(uint32_t e=0;e<3;e++){
-        uint32_t chip=(8u|(raw&7u))<<(raw>>3);
-        double domain=e==0?131072.0:e==1?16384.0:131072.0;
-        double want=chip*(double)CTL*40000/FS/(e==0?8:e==1?4:2)/domain;
-        assert(fabs(cz_hw_rate(raw,e)/want-1)<2e-7);
-    }
-    /* Short rising/falling segments consume fractions of the same tick. */
-    cz_native_def_t d={0};cz_native_env_t env={0};d.sustain=2;d.end=3;
-    d.level[0]=0.25f;d.level[1]=0.125f;d.level[2]=0.75f;
-    for(uint32_t i=0;i<4;i++)d.rate[i]=1.0f;
-    assert(cz_native_env_tick(&env,&d,1)==0.75f && env.stage==2);
-    assert(cz_native_env_tick(&env,&d,0)==0.0f && env.stage==4);
-    /* At zero distortion the native carrier is -cos, with continuous phase. */
-    cz_hw_pd_t pd;cz_native_pd(&pd,0,0.0f);double error=0;
-    for(uint32_t i=0;i<10000;i++){
-        uint32_t ph=i*429497u;
-        double want=-cos(ph*(6.283185307179586/4294967296.0));
-        double e=fabs(cz_native_wave(&pd,ph,0)-want);if(e>error)error=e;
-    }
-    assert(error<6e-6);
-    float a=cz_native_wave(&pd,0x40000000u,0),b=cz_native_wave(&pd,0x40080000u,0);
-    assert(fabsf(a-b)>0.0001f); /* both phases occupied one old 11-bit bin */
-    assert(cz_native_amp(0.0001f,0,0,127)>0.0f);
-    for(uint32_t attenuation=0;attenuation<16;attenuation++)
-    for(uint32_t velocity=0;velocity<128;velocity++){
-        float gain=cz_native_amp(126.5f,attenuation,15,velocity);
-        assert(isfinite(gain)&&gain>=0.0f&&gain<=1.0f);
-    }
-    printf("fp32 CZ-1: cosine error %.3g; fractional envelope time and quiet gain preserved\n",error);
-}
+/* (the CZ-1 numerics went with the engine) */
 
 /* Independent double-precision trapezoidal filter, including tanh at each
  * SSI pole. Compare below self-oscillation, where phases cannot diverge. */
@@ -111,6 +80,6 @@ static void prophet_numerics(void)
 }
 int main(void)
 {
-    fm6_numerics();cz_numerics();prophet_numerics();
+    fm6_numerics();prophet_numerics();
     puts("native fp32 numerical contracts passed");return 0;
 }

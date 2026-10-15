@@ -55,10 +55,10 @@ int main(void)
 #ifdef MELODEE_FAVORITES
     assert(favorite_has(8, 0) && favorite_has(USER_GENERAL, 31) && favorites.filter);
 #endif
-    favorite_set(USER_NATIVE_FM,63,1);favorite_set(USER_NATIVE_CZ,127,1);favorite_set(USER_GENERAL,63,1);
+    favorite_set(USER_NATIVE_FM,63,1);favorite_set(USER_GENERAL,63,1);
     settings_export(&p);memset(&favorites,0,sizeof favorites);favorites_user_hi=0;settings_import(&p,sizeof p);
-    assert(favorite_has(USER_NATIVE_FM,63) && favorite_has(USER_NATIVE_CZ,127) && favorite_has(USER_GENERAL,63));
-    assert(!favorite_has(USER_NATIVE_FM,64) && !favorite_has(USER_NATIVE_CZ,128));
+    assert(favorite_has(USER_NATIVE_FM,63) && favorite_has(USER_GENERAL,63));
+    assert(!favorite_has(USER_NATIVE_FM,64));
     p=original;settings_import(&p,sizeof p);
     {
         uint8_t legacy[16]; memset(favorites.factory[14], 0xA5, 32);

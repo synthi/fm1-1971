@@ -28,7 +28,6 @@ static const char *const PRESET_CAT[NENGINES] = {
     [3] = "OLBBBBBBLLLLLLLLPSPPGGKKUUERFFFF",          /* SID */
     [10] = "DD",                                        /* DRUM: the kits */
     [12] = "KEBRPEGUKRBEEKGSPLUEWEBEO",                 /* FM6, INIT VOICE */
-    [ENGI_CZ] = "ORRRSSSSSUUUBBBBURWSWWWWUKKKKKKKKGGGGGPPPEEEEEDEESSULLLLFDDDEFFFF",   /* INIT TONE, Casio's 64 */
     [ENGI_PROPHET] =                                    /* INIT, Sequential's 200 */
         "OOOKBPROOOGKLPWPOLOUUBEOEGFPOOBOEOOODDDEOOGKSGBPEPPLBROOOOPOKPKOFOSOOEPRODFLFOOEOULWOPBOLOPKFORGLPOBULROOSKOO"
         "PSBUEFDEEEWEUOUEOOOOSERPUOBOOOBOFLGUGRLOOOBUFOOFEUFORSKKWKLGLGGKROGBGLKSLOOFOFOFLUUEFFEOFEPF",
@@ -119,17 +118,16 @@ static uint32_t cat_guess(uint32_t e, const char *nm)
  * or the slot. The slots' categories: a nibble each (0: not worked out yet), dropped when up_gen moves */
 #define BRW_P5 128u                                    /* (native_presets.c, prophet_user.c, core.h assert these) */
 #define BRW_FM 64u
-#define BRW_CZ 128u
-#define BRW_DYN (BRW_P5 + BRW_FM + BRW_CZ + UP_SLOTS)
+#define BRW_DYN (BRW_P5 + BRW_FM + UP_SLOTS)
 static uint8_t cat_dyn[BRW_DYN / 2u];
 static uint32_t cat_dyn_gen = 0xFFFFFFFFu;
 static int src_slot(uint32_t src)
 {
-    return src == USER_GENERAL || src == USER_NATIVE_P5 || src == USER_NATIVE_FM || src == USER_NATIVE_CZ;
+    return src == USER_GENERAL || src == USER_NATIVE_P5 || src == USER_NATIVE_FM;
 }
 static uint32_t src_engine(uint32_t src, uint32_t k)       /* the engine that plays entry src, k */
 {
-    return src == USER_NATIVE_P5 ? ENGI_PROPHET : src == USER_NATIVE_FM ? ENGI_FM6 : src == USER_NATIVE_CZ ? ENGI_CZ :
+    return src == USER_NATIVE_P5 ? ENGI_PROPHET : src == USER_NATIVE_FM ? ENGI_FM6 :
            src == USER_GENERAL ? up_engine(k) % NENGINES : src % NENGINES;
 }
 static uint32_t entry_cat(uint32_t src, uint32_t k)
@@ -138,8 +136,8 @@ static uint32_t entry_cat(uint32_t src, uint32_t k)
     char nm[16];
     if (!src_slot(src))
         return preset_cat(src % NENGINES, k);
-    i = src == USER_NATIVE_P5 ? k : src == USER_NATIVE_FM ? BRW_P5 + k : src == USER_NATIVE_CZ ? BRW_P5 + BRW_FM + k :
-        BRW_P5 + BRW_FM + BRW_CZ + k;
+    i = src == USER_NATIVE_P5 ? k : src == USER_NATIVE_FM ? BRW_P5 + k :
+        BRW_P5 + BRW_FM + k;
     if (i >= BRW_DYN)
         return CAT_OTHER;
     if (cat_dyn_gen != up_gen) {
@@ -171,7 +169,7 @@ static void cur_entry(uint32_t *src, uint32_t *k)
 {
     uint32_t u = user_of(TSEL), e = TSEL->eng_req % NENGINES, np = ENGINES[e]->npresets;
     if (u < USER_NONE && TSEL->user_native) {
-        *src = e == ENGI_PROPHET ? USER_NATIVE_P5 : e == ENGI_FM6 ? USER_NATIVE_FM : USER_NATIVE_CZ;
+        *src = e == ENGI_PROPHET ? USER_NATIVE_P5 : e == ENGI_FM6 ? USER_NATIVE_FM : USER_GENERAL;
         *k = u;
     } else if (u < UP_SLOTS) {
         *src = USER_GENERAL;
@@ -251,7 +249,7 @@ static uint32_t lseg_src(uint32_t seg)
     if (seg >= LSEG_USER)
         return USER_GENERAL;
     e = eng_vis(seg / 2u);
-    return !(seg & 1u) ? e : e == ENGI_PROPHET ? USER_NATIVE_P5 : e == ENGI_FM6 ? USER_NATIVE_FM : USER_NATIVE_CZ;
+    return !(seg & 1u) ? e : e == ENGI_PROPHET ? USER_NATIVE_P5 : e == ENGI_FM6 ? USER_NATIVE_FM : USER_GENERAL;
 }
 static uint32_t lseg_len(uint32_t seg)
 {

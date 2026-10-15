@@ -47,8 +47,6 @@ mod_end 7
 # Quarter-rate Tape now includes the fused wet interpolation/mix, replacing full-rate passes.
 # These are static compiled-loop sizes; device before/after proves the actual CPU reduction.
 fx_tape 259
-cz_native_render 529
-cz_native_wave 0
 drum_source 10
 drum_limit 22
 drum_color 19

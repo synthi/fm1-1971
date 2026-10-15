@@ -41,7 +41,6 @@
 #define USER_NATIVE_P5 20u
 #define NENGINES 20               /* 13 SLICE and 14 OBXF reserved; 15 native CZ-1 */
 #define USER_NATIVE_FM 17u
-#define USER_NATIVE_CZ 18u
 #define USER_NONE 256u
 #define ENGI_ANALOG 0u           /* retired in 1.2: never selectable (eng_ok), its stored sounds play silent */
 #define ENGI_DIGITAL 1u          /* retired: never selectable (eng_ok), its stored sounds play silent */

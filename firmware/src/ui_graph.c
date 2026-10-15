@@ -827,9 +827,9 @@ static void panel_note(const char *a, const char *b, const char *c)
 /* a list entry's tag and name, as the browser shows them: "P5" "It's a Proph", "F012" (native), "U07" (user preset) */
 static void entry_label(uint32_t e, uint32_t k, char *tag, char *nm)
 {
-    if (e == USER_NATIVE_P5 || e == USER_NATIVE_FM || e == USER_NATIVE_CZ) {
+    if (e == USER_NATIVE_P5 || e == USER_NATIVE_FM) {
         uint32_t eng = src_engine(e, k);
-        tag[0] = eng == ENGI_PROPHET ? 'P' : eng == ENGI_FM6 ? 'F' : 'Z';
+        tag[0] = eng == ENGI_PROPHET ? 'P' : 'F';
         tag[1] = (char)('0' + (k + 1u) / 100u);
         tag[2] = (char)('0' + (k + 1u) / 10u % 10u);
         tag[3] = (char)('0' + (k + 1u) % 10u);

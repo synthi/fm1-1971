@@ -25,7 +25,7 @@ int main(int argc,char **argv)
     bad+=check("interrupted native save keeps the last flash commit after reboot",!p5_user_get(127,&q)&&!memcmp(&p,&q,sizeof p));
     song.playing=1;before=erases;bad+=check("native saves during playback cannot erase storage",native_put(ENGI_PROPHET,0,(const uint8_t *)&p)==2&&before==erases);song.playing=0;
     bad+=check("P128 and Prophet INIT favorites use separate persistent masks",favorite_set(USER_NATIVE_P5,127,1)&&favorite_set(ENGI_PROPHET,0,1));p5_user_reset();
-    bad+=check("Prophet favorites survive cache reset without moving old identifiers",favorite_has(USER_NATIVE_P5,127)&&favorite_has(ENGI_PROPHET,0)&&USER_GENERAL==16&&USER_NATIVE_FM==17&&USER_NATIVE_CZ==18);
+    bad+=check("Prophet favorites survive cache reset without moving old identifiers",favorite_has(USER_NATIVE_P5,127)&&favorite_has(ENGI_PROPHET,0)&&USER_GENERAL==16&&USER_NATIVE_FM==17);
     favorite_set(0,11,1);favorite_set(ENGI_PROPHET,200,1);settings_save();
     persist_t prefs;int prefs_len=st_load(OBJ_SETTINGS,&prefs,sizeof prefs);memset(&favorites,0,sizeof favorites);
     bad+=check("all Prophet factory stars persist without overwriting retired ANALOG's stars",prefs_len==(int)sizeof prefs&&settings_import(&prefs,prefs_len)&&favorite_has(ENGI_PROPHET,0)&&favorite_has(ENGI_PROPHET,200)&&favorite_has(0,11)&&favorite_has(USER_NATIVE_P5,127));

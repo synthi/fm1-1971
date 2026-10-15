@@ -115,7 +115,7 @@ static int ed_ui_handle(uint32_t cmd, const uint8_t *a, uint32_t n)
 #ifdef MELODEE_FAVORITES
         if (n == 4u && a[0] <= USER_NATIVE_P5) {
             int32_t start = ed_rv(a + 1);
-            uint32_t limit = (a[0]==USER_NATIVE_FM || a[0]==USER_NATIVE_CZ || a[0]==USER_NATIVE_P5) ? native_limit(a[0]==USER_NATIVE_P5?ENGI_PROPHET:a[0]==USER_NATIVE_FM?ENGI_FM6:ENGI_CZ) : a[0] == USER_GENERAL ? UP_SLOTS : ENGINES[a[0]]->npresets;
+            uint32_t limit = (a[0]==USER_NATIVE_FM || a[0]==USER_NATIVE_P5) ? native_limit(a[0]==USER_NATIVE_P5?ENGI_PROPHET:ENGI_FM6) : a[0] == USER_GENERAL ? UP_SLOTS : ENGINES[a[0]]->npresets;
             if (start >= 0 && a[3] && a[3] <= 32u && (uint32_t)start + a[3] <= limit) {
                 ed_b(0); ed_b(a[0]); ed_v(start); ed_b(a[3]);
                 for (uint32_t i = 0; i < a[3]; i++) ed_b(favorite_has(a[0], (uint32_t)start + i));
@@ -131,10 +131,10 @@ static int ed_ui_handle(uint32_t cmd, const uint8_t *a, uint32_t n)
 #ifdef MELODEE_FAVORITES
         if (n == 4u && a[0] <= USER_NATIVE_P5 && a[3] <= 1u) {
             int32_t preset = ed_rv(a + 1);
-            uint32_t limit = (a[0]==USER_NATIVE_FM || a[0]==USER_NATIVE_CZ || a[0]==USER_NATIVE_P5) ? native_limit(a[0]==USER_NATIVE_P5?ENGI_PROPHET:a[0]==USER_NATIVE_FM?ENGI_FM6:ENGI_CZ) : a[0] == USER_GENERAL ? UP_SLOTS : ENGINES[a[0]]->npresets;
+            uint32_t limit = (a[0]==USER_NATIVE_FM || a[0]==USER_NATIVE_P5) ? native_limit(a[0]==USER_NATIVE_P5?ENGI_PROPHET:ENGI_FM6) : a[0] == USER_GENERAL ? UP_SLOTS : ENGINES[a[0]]->npresets;
             if (preset >= 0 && (uint32_t)preset < limit &&
                 (a[0] != USER_GENERAL || !a[3] || up_used((uint32_t)preset)) &&
-                ((a[0]!=USER_NATIVE_FM && a[0]!=USER_NATIVE_CZ && a[0]!=USER_NATIVE_P5) || !a[3] || native_used(a[0]==USER_NATIVE_P5?ENGI_PROPHET:a[0]==USER_NATIVE_FM?ENGI_FM6:ENGI_CZ,(uint32_t)preset))) {
+                ((a[0]!=USER_NATIVE_FM && a[0]!=USER_NATIVE_P5) || !a[3] || native_used(a[0]==USER_NATIVE_P5?ENGI_PROPHET:ENGI_FM6,(uint32_t)preset))) {
                 int p5=a[0]==ENGI_PROPHET || a[0]==USER_NATIVE_P5;
                 int before=favorite_has(a[0],(uint32_t)preset);
                 int changed=favorite_set(a[0], (uint32_t)preset, a[3]);

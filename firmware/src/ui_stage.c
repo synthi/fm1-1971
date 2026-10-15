@@ -36,8 +36,7 @@ static int stage_knobs_out(void) { return stage.knob_ms && fm1_ms - (stage.knob_
 /* a knob's label: the panel's, plain words for CZ-1's (its panel says R1, L1 ..) */
 static const char *stage_label(uint32_t k, const param_desc_t *d)
 {
-    static const char *const CZ_L[4] = {"WAVE", "DCW", "DETUNE", "VIBRATO"};
-    return stage_pg.scope == SC_CZ1 ? CZ_L[k & 3u] : d->label;
+    return d->label;
 }
 /* a knob's value as Stage shows it: the Prophet's 0..127 panel values in % (the mockup's CUTOFF 62 %) */
 static void stage_value(const page_t *sp, const param_desc_t *d, int32_t v, char *val, const char **unit)

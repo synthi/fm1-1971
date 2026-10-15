@@ -42,16 +42,6 @@ static const p5_patch_t *p5_fac(uint32_t k)
     p5_factory(k, p);
     return p;
 }
-#if MELODEE_CZ
-static const uint8_t *cz_fac(uint32_t k)
-{
-    static uint8_t s[4][CZ_BYTES];
-    static uint32_t n;
-    uint8_t *p = s[n++ % 4u];
-    cz_factory(k, p);
-    return p;
-}
-#endif
 #include "../firmware/src/params.c"
 #include "../firmware/src/mod.c"
 #include "../firmware/src/voice.c"

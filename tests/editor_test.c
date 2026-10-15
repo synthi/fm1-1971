@@ -61,9 +61,6 @@ static int st_prog(uint32_t off, const void *p, uint32_t n) { (void)off; (void)p
 static int st_erase(uint32_t off) { (void)off; return -1; }
 #include "../firmware/src/storage.c"
 #include "../firmware/src/editor.c"
-#if MELODEE_CZ
-#include "../firmware/src/cz_store.c"
-#endif
 
 static int check(const char *what, int ok)
 {
@@ -414,111 +411,6 @@ static int bank_protocol(void)
     bad += check("sample inventory advertises zero user slots", host_wire[5]==0);
     return bad;
 }
-#if MELODEE_CZ
-static int cz_native_protocol(void)
-{
-    int bad=0; uint8_t raw[CZ_BYTES],a[322]; reset();cz_init();
-    cz_patch_init(raw);raw[20]=0x37;raw[16]=0x42;raw[17]=17;raw[14]=0xE0;raw[15]=0xDE;
-    for(uint32_t k=0;k<8;k++){raw[21+2*k]=(uint8_t)(k*15);raw[22+2*k]=(uint8_t)(k*17);}raw[28]|=128;
-    a[0]=0;a[1]=2;for(uint32_t i=0;i<CZ_BYTES;i++){a[2+2*i]=raw[i]&15;a[3+2*i]=raw[i]>>4;}
-    request(ED_CZ_PUT,a,290);
-    bad+=check("CZ PUT preserves all eight DCA points, velocity and hidden waves",host_wire[7]==0 && trk[2].eng_req==ENGI_CZ && trk[2].p[P_E7]==CZ_NATIVE && !memcmp(cz_patch[2].raw,raw,CZ_BYTES));
-    request(ED_CZ_GET,a,2);int same=host_wire_n==297 && host_wire[7]==0;
-    for(uint32_t i=0;i<CZ_BYTES;i++)same &= host_wire[8+2*i]==(raw[i]&15) && host_wire[9+2*i]==(raw[i]>>4);
-    bad+=check("CZ GET returns exact low-first tone nibbles",same);
-    a[40]=16;request(ED_CZ_PUT,a,290);bad+=check("invalid CZ upload leaves live patch intact",host_wire[7]==1 && !memcmp(cz_patch[2].raw,raw,CZ_BYTES));a[40]=raw[19]&15;
-    a[0]=1;a[1]=8;request(ED_CZ_PUT,a,290);bad+=check("CZ tone uses atomic ordinary preset storage",host_wire[7]==0 && up_used(8) && up_rec(8)->ver==UP_VER_CZ && !memcmp(up_rec(8)->packed,raw,CZ_BYTES));
-    song.sel=1;up_load(8);bad+=check("loading user CZ preset restores all 144 native bytes",TSEL->p[P_E7]==CZ_NATIVE && !memcmp(cz_patch[1].raw,raw,CZ_BYTES));
-    project_t q,r;project_store_t packed;project_capture(&q);bad+=check("native tones survive project serialization",proj_pack(&packed,&q) && proj_unpack(&r,packed.raw) && !memcmp(q.cz,r.cz,sizeof q.cz));
-    static uint8_t banked[BANK_STORE_SIZE];
-    bad+=check("native tones survive full pattern-bank serialization",bank_pack(banked,&q,1) && bank_valid(banked,sizeof banked) && !memcmp(q.cz,proj_scratch.cz,sizeof q.cz));
-    template_save(); static tmpl_t saved; saved=tmpl;
-    memset(cz_patch,0,sizeof cz_patch); memset(&tmpl,0,sizeof tmpl);
-    int restored=tmpl_take((const uint8_t *)&saved,sizeof saved);template_load();
-    bad+=check("native tone bytes and mode survive a saved template",restored && trk[1].p[P_E7]==CZ_NATIVE && !memcmp(cz_patch[1].raw,raw,CZ_BYTES));
-    const uint32_t sizes[]={sizeof(tmpl_fx_legacy_t),sizeof(tmpl_fx_single_t),sizeof(tmpl_t)-40u,sizeof(tmpl_t)-16u,sizeof(tmpl_t)};
-    for(uint32_t k=0;k<NELEM(sizes);k++){
-        uint8_t begin[12]={0,1},abort[2]={3,1};uint32_t len=sizeof(persist_t)+sizes[k];
-        for(uint32_t j=0;j<5;j++)begin[2+j]=(uint8_t)((len>>(7*j))&127u);
-        bad+=check("settings transfer accepts every supported template layout",!ed_bk_write(begin,sizeof begin) && !ed_bk_write(abort,sizeof abort));
-    }
-    {uint8_t malformed[12]={0,1,1};bad+=check("settings transfer rejects undersized template payload",ed_bk_write(malformed,sizeof malformed)==1);}
-    return bad;
-}
-static int cz_casio_sysex(void)
-{
-    int bad=0;reset();cz_init();trk[0].eng_req=ENGI_CZ;uint8_t raw[CZ_BYTES],frame[296],got[CZ_BYTES];cz_patch_init(raw);raw[16]=0x42;raw[17]=17;raw[18]=5;raw[19]=83;raw[128]='S';
-    const uint8_t head[]={0xf0,0x44,0,0,0x70,0x21,0x60};memcpy(frame,head,7);for(uint32_t j=0;j<CZ_BYTES;j++){frame[7+2*j]=raw[j]&15;frame[8+2*j]=raw[j]>>4;}frame[295]=0xf7;
-    for(uint32_t j=0;j<sizeof frame;j++)sysex_byte(frame[j]);cz_service();host_drain();
-    bad+=check("direct Casio MIDI SysEx stages exact named tone in the CZ user list",sx_import.count==1 && library_engine()==ENGI_CZ && !memcmp(sx_import.data,raw,CZ_BYTES) && cur_page()->graph==GR_USER);
-    ui.uslot=7;sysex_choose();native_load(ENGI_CZ,7,0);memcpy(got,cz_patch[0].raw,CZ_BYTES);
-    frame[10]=16;for(uint32_t j=0;j<sizeof frame;j++)sysex_byte(frame[j]);cz_service();
-    bad+=check("invalid direct Casio SysEx leaves the native tone intact",!memcmp(cz_patch[0].raw,got,CZ_BYTES));
-    const uint8_t request[]={0xf0,0x44,0,0,0x70,0x11,0x60,0xf7};host_wire_n=0;for(uint32_t j=0;j<sizeof request;j++)sysex_byte(request[j]);cz_service();host_drain();
-    int same=host_wire_n==295 && host_wire[5]==0x30;for(uint32_t j=0;same && j<CZ_BYTES;j++)same=host_wire[6+2*j]==(raw[j]&15) && host_wire[7+2*j]==(raw[j]>>4);
-    bad+=check("direct Casio tone request exports exact native bytes",same);return bad;
-}
-
-static int cz_dedicated_banks(void)
-{
-    int bad=0;reset();cz_init();cz_bank_boot();cz_bank_t bank;
-    for(uint32_t k=0;k<8;k++){
-        cz_bank_empty(&bank,k);bank.used=0x8001u;cz_patch_init(bank.tone[0].raw);cz_patch_init(bank.tone[15].raw);
-        bank.tone[0].raw[128]=(uint8_t)('A'+k);bank.tone[15].raw[128]=(uint8_t)('a'+k);
-        memcpy(ED_BK_RAW,&bank,sizeof bank);ed_bk_id=(uint8_t)(9+k);ed_bk_len=ed_bk_pos=sizeof bank;ed_bk_crc=st_crc32(&bank,sizeof bank);
-        bad+=check("CZ dedicated bank commits through bounded backup transfer",!ed_bk_commit());
-    }
-    for(uint32_t k=0;k<8;k++){
-        uint8_t args[2]={2,(uint8_t)(16*k+15)};request(ED_CZ_GET,args,2);
-        bad+=check("CZ banks remain independent with complete raw tones",!host_wire[7] && (host_wire[264]|host_wire[265]<<4)==('a'+k));
-    }
-    uint8_t a[1]={7};request(ED_CZ_BANK,a,1);
-    bad+=check("CZ bank list names all 16 dedicated slots",host_wire[5]==7 && !host_wire[6] && !memcmp(host_wire+7,"BANK H",6));
-    host_preset(&trk[0],ENGI_CZ,0);trk[0].p[P_E0]=7;trk[0].p[P_E1]=16;cz_bank_poll();
-    bad+=check("device BANK and PTCH knobs load stored native tone",cz_patch[0].raw[128]=='h' && trk[0].eng_req==ENGI_CZ);
-    uint8_t previous=cz_patch[0].raw[128];trk[0].p[P_E1]=2;cz_bank_poll();
-    bad+=check("empty CZ bank slot leaves playing tone intact",cz_patch[0].raw[128]==previous);
-    cz_bank_t keep=*cz_bank_load(7);bank=keep;bank.tone[0].raw[0]=255;
-    memcpy(ED_BK_RAW,&bank,sizeof bank);ed_bk_id=16;ed_bk_len=ed_bk_pos=sizeof bank;ed_bk_crc=st_crc32(&bank,sizeof bank);
-    bad+=check("invalid native bank rejected before replacing saved tones",ed_bk_commit()==2 && !memcmp(cz_bank_load(7),&keep,sizeof keep));
-    request(ED_BACKUP_LIST,a,0);bad+=check("full backups include all eight CZ user banks",host_wire[7]==28);
-    return bad;
-}
-static int native_protocol(void)
-{
-    int bad=0;reset();cz_init();uint8_t a[3+2*CZ_BYTES],fm[FM6_PACKED],cz[CZ_BYTES];
-    fm6_factory(5,fm);cz_patch_init(cz);memcpy(cz+128,"SIXTEEN CHAR CZ! ",16);
-    a[0]=ENGI_FM6;a[1]=2;a[2]=63;memcpy(a+3,fm,sizeof fm);request(ED_NATIVE,a,3+sizeof fm);
-    bad+=check("NATIVE saves F064 independently of general user records",!host_wire[8] && native_used(ENGI_FM6,63) && !up_used(63));
-    a[1]=1;uint32_t n=request(ED_NATIVE,a,3);
-    bad+=check("NATIVE GET returns exact DX7 VMEM bytes",n==138 && !host_wire[8] && !memcmp(host_wire+9,fm,sizeof fm));
-    a[0]=ENGI_CZ;a[1]=2;a[2]=127;
-    for(uint32_t j=0;j<CZ_BYTES;j++){a[3+2*j]=cz[j]&15;a[4+2*j]=cz[j]>>4;}
-    request(ED_NATIVE,a,sizeof a);
-    bad+=check("NATIVE saves Z128 without using general or FM6 slots",!host_wire[8] && native_used(ENGI_CZ,127) && !memcmp(native_raw(ENGI_CZ,127),cz,sizeof cz));
-    a[3]=16;request(ED_NATIVE,a,sizeof a);
-    bad+=check("malformed native nibbles cannot replace a committed tone",host_wire[8]==1 && !memcmp(native_raw(ENGI_CZ,127),cz,sizeof cz));
-    a[1]=0;a[2]=120;a[3]=16;request(ED_NATIVE,a,4);
-    bad+=check("last native page clamps to Z128 and reports 128 slots",!host_wire[8] && host_wire[9]==8 && host_wire[10]==0 && host_wire[11]==1);
-    a[1]=4;a[2]=127;a[3]=2;trk[2].p[P_PAN]=37;trk[2].p[P_LEVEL]=61;trk[2].step[0].note[0]=67;request(ED_NATIVE,a,4);
-    bad+=check("native load targets track 3 and preserves pan, level and pattern",!host_wire[8] && trk[2].user==128 && trk[2].user_native && trk[2].p[P_PAN]==37 && trk[2].p[P_LEVEL]==61 && trk[2].step[0].note[0]==67 && !memcmp(cz_patch[2].raw,cz,sizeof cz));
-    trk[2].p[P_E2]=23;request(ED_NATIVE,a,4);
-    bad+=check("same-engine native load also keeps track macros",trk[2].p[P_E2]==23);
-    a[1]=7;a[2]=2;request(ED_NATIVE,a,3);
-    bad+=check("native status encodes Z128 without a 7-bit overflow",!host_wire[8] && host_wire[9]==0 && host_wire[10]==1);
-    uint8_t fav[4]={USER_NATIVE_CZ,127,64,1};request(ED_FAV_SET,fav,4);
-    bad+=check("highest native preset can be favorited through editor",host_wire[5]==3 && favorite_has(USER_NATIVE_CZ,127));
-    a[1]=3;a[2]=126;a[3]=2;request(ED_NATIVE,a,4);
-    bad+=check("native STORE captures just the complete tone",!host_wire[8] && !memcmp(native_raw(ENGI_CZ,126),cz,sizeof cz) && !up_used(62));
-    a[1]=6;memcpy(a+3,"FULL NAME 16 XYZ!",16);request(ED_NATIVE,a,19);
-    bad+=check("native rename retains all 16 CZ name bytes",!host_wire[8] && !memcmp(native_raw(ENGI_CZ,126)+128,"FULL NAME 16 XYZ!",16));
-    a[1]=5;a[2]=127;request(ED_NATIVE,a,3);
-    bad+=check("native erase clears favorite and current preset origin",!host_wire[8] && !native_used(ENGI_CZ,127) && !favorite_has(USER_NATIVE_CZ,127) && !trk[2].user);
-    a[0]=ENGI_FM6;a[1]=3;a[2]=0;a[3]=2;request(ED_NATIVE,a,4);
-    bad+=check("wrong-engine store cannot create a native preset",host_wire[8]==1 && !native_used(ENGI_FM6,0));
-    return bad;
-}
-#endif
 static int names_whole(void)
 {
     int bad = 0;
@@ -626,11 +518,11 @@ static int native_motion_protocol(void)
 static void receive_library(const uint8_t *frame,uint32_t n)
 {
     for(uint32_t i=0;i<n;i++)midi_in_event(15u|(uint32_t)frame[i]<<8);
-    fm6_service();cz_service();ed_service();host_drain();ota_frame_done();
+    fm6_service();ed_service();host_drain();ota_frame_done();
 }
 static int library_transfers(void)
 {
-    int bad=0;uint8_t frame[320],raw[CZ_BYTES];uint32_t n;
+    int bad=0;uint8_t frame[320],raw[FM6_PACKED];uint32_t n;
     reset();up_store(2,"NAMED GENERAL");up_rec_t saved=*up_rec(2);int16_t level=TSEL->p[P_LEVEL];
     bad+=check("general slot exports a complete 7-bit USB frame",!library_send(TSEL->eng_req,2));host_drain();
     n=host_wire_n;memcpy(frame,host_wire,n);
@@ -647,11 +539,6 @@ static int library_transfers(void)
     bad+=check("Prophet import keeps all twenty name bytes and opens P slots from another engine",sx_import.count==1&&library_engine()==ENGI_PROPHET&&user_limit()==128&&TSEL->eng_req!=ENGI_PROPHET&&!memcmp(sx_import.data,&p,sizeof p));
     ui.uslot=127;sysex_choose();host_wire_n=0;library_send(ENGI_PROPHET,127);host_drain();
     bad+=check("Prophet export reproduces the received frame and opaque bytes",!sx_import.count&&host_wire_n==n&&!memcmp(host_wire,frame,n));
-#if MELODEE_CZ
-    reset();cz_patch_init(raw);memcpy(raw+128,"FULL CZ NAME XYZ!",16);native_put(ENGI_CZ,7,raw);host_wire_n=0;
-    library_send(ENGI_CZ,7);host_drain();n=host_wire_n;memcpy(frame,host_wire,n);receive_library(frame,n);
-    bad+=check("CZ USB export/import retains all sixteen name bytes",n==295&&sx_import.count==1&&library_engine()==ENGI_CZ&&!memcmp(sx_import.data,raw,CZ_BYTES));sysex_cancel();
-#endif
     reset();memcpy(raw,FM6_INIT,FM6_PACKED);memcpy(raw+118,"FULL DX7!!",10);native_put(ENGI_FM6,3,raw);native_put(ENGI_FM6,4,raw);
     bulk=(typeof(bulk)){.on=1,.engine=ENGI_FM6,.anchor=3,.end=4};bulk_send();host_drain();n=163;memcpy(frame,host_wire,n);
     bad+=check("FM6 bulk export sends two independently valid named voice frames",host_wire_n==326&&!memcmp(host_wire,host_wire+n,n)&&!sx_checksum(frame+6,156));
@@ -663,9 +550,6 @@ int main(void)
 {
     int bad = library_transfers() + native_motion_protocol() + prophet_protocol() + bank_protocol() + preferences() + framing() + uart_recovery() + steps() + song_protocol() + malformed_saves() + names_whole() +
               fm6_patches() + user_preset_roundtrip() + concert_pitch() + scale_catalogue()
-#if MELODEE_CZ
-              + native_protocol() + cz_native_protocol() + cz_dedicated_banks() + cz_casio_sysex()
-#endif
               ;
     printf("%s\n", bad ? "EDITOR TEST FAILED" : "editor test passed");
     return bad != 0;

@@ -201,7 +201,7 @@ static int repeat_mode(void)
 static int native_motion_test(void)
 {
     int bad = 0;
-    const uint32_t engines[] = {ENGI_PROPHET, ENGI_CZ, ENGI_FM6};
+    const uint32_t engines[] = {ENGI_PROPHET, ENGI_FM6};
     const uint32_t bytes[] = {P5_CUTOFF, 38u, FP_OL};
     for (uint32_t e = 0; e < 3u; e++) {
         ui_power_on(); track_t *t = TSEL; set_engine_of(t, engines[e]); apply_preset_to(t, 0);
@@ -214,7 +214,7 @@ static int native_motion_test(void)
         project_t q, restored; project_store_t packed; uint8_t unpacked[FP_SIZE + 1u];
         project_capture(&q); fm6_unpack(q.fm6[0], unpacked);
         bad += check("native project snapshot saves the original patch while motion sounds",
-            (tag == MO_TAG_P5 ? q.p5[0].raw[i] : tag == MO_TAG_CZ ? q.cz[0].raw[i] : unpacked[i]) == base &&
+            (tag == MO_TAG_P5 ? q.p5[0].raw[i] : unpacked[i]) == base &&
             proj_pack(&packed, &q) && proj_import(&restored, &packed, sizeof packed) &&
             restored.motion.event[0].value == (int16_t)(tag << 8 | changed));
         seq_stop(); bad += check("native stop immediately restores the original patch", *motion_native_at(t, i) == base);
@@ -241,10 +241,6 @@ static int native_motion_test(void)
     seq_start(); seq_tick(TSEL, CTL); turn(EN_K1, -1);
     bad += check("Prophet Stage cutoff records through the real UI", motion.count && motion.event[0].param == MO_NATIVE + P5_CUTOFF);
     seq_stop();
-    ui_power_on(); set_engine_of(TSEL, ENGI_CZ); apply_preset_to(TSEL, 0); go_home();
-    song.rec = 1; seq_start(); seq_tick(TSEL, CTL); turn(EN_K1, 1);
-    bad += check("CZ Stage DCW records through the real UI", motion.count && (uint32_t)motion.event[0].value >> 8 == MO_TAG_CZ);
-    seq_stop();
     ui_power_on(); set_engine_of(TSEL, ENGI_FM6); apply_preset_to(TSEL, 0);
     for (uint32_t p = 0; p < NPAGES; p++) if (PAGES[p].scope == SC_FMOP) { ui.home = 0; ui.page = p; break; }
     song.rec = 1; seq_start(); seq_tick(TSEL, CTL); turn(EN_K1, -1);
@@ -266,10 +262,11 @@ static int native_motion_test(void)
         !motion_native_ok(MO_NATIVE + P5_SAW_A, MO_TAG_P5 << 8 | 127) &&
         !motion_native_ok(MO_NATIVE + FP_TRNSP, MO_TAG_FM6 << 8) &&
         !motion_native_ok(MO_NATIVE + FP_DET, MO_TAG_FM6 << 8 | 99));
-    ui_power_on(); set_engine_of(TSEL, ENGI_CZ); apply_preset_to(TSEL, 0);
+    ui_power_on(); set_engine_of(TSEL, ENGI_FM6); apply_preset_to(TSEL, 0);
     for (uint32_t j = 0; j < MOTION_MAX - 1u; j++) motion_set_event(TSEL, j, P_LEVEL, 30);
     song.rec = 1; seq_start(); seq_tick(TSEL, CTL); uint8_t old[MO_NATIVE_N]; motion_native_peek(TSEL, old);
-    cz_patch[0].raw[38] ^= 1; cz_patch[0].raw[39] ^= 1; motion_native_edited(TSEL, old);
+    uint8_t raw[FM6_PACKED]; memcpy(raw, fm6_patch[0], sizeof raw); raw[10] ^= 1; raw[11] ^= 1;
+    fm6_put_patch(0, raw, 0); motion_native_edited(TSEL, old);
     bad += check("full pool refuses a whole multi-byte native edit without partial events", motion.count == MOTION_MAX - 1u && motion_full);
     seq_stop();
     return bad;

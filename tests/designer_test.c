@@ -42,8 +42,8 @@ static void transaction_tests(void)
     failures+=check("second SAVE returns to exact edited draft",!ds.compare && !memcmp(&draft,&after,sizeof draft));
     designer_finish_row(2);designer_snapshot(&after);
     failures+=check("discard restores exact original without touching pattern or arp",!designer_on() && !memcmp(&before,&after,sizeof before) && steps_sig(TSEL)==steps && TSEL->p[P_ARATE]==arp);
-    designer_open();ds.eng=ENGI_CZ;ds.current=0;press(B_OCTUP);
-    failures+=check("engine change happens on BEGIN and retains pattern",TSEL->eng_req==ENGI_CZ && steps_sig(TSEL)==steps);
+    designer_open();ds.eng=3;ds.current=0;press(B_OCTUP);
+    failures+=check("engine change happens on BEGIN and retains pattern",TSEL->eng_req==3 && steps_sig(TSEL)==steps);
     press(B_SAVE);press(B_SAVE);designer_finish_row(2);designer_snapshot(&after);
     failures+=check("cross-engine compare/discard restores the original native patch",!memcmp(&before,&after,sizeof before));
 }
@@ -75,11 +75,9 @@ static void dependency_tests(void)
     failures+=check("a silent operator's level turned down stays silent",!(fm6_on[0]&(1u<<3)) && !fm6_patch[0][3*FP_OP+FP_OL]);
     turn(EN_K1,1);
     failures+=check("turned up, the displayed OP3 (not reversed OP4) is switched on",(fm6_on[0]&(1u<<3)) && fm6_patch[0][3*FP_OP+FP_OL]>0);
-    designer_close(0);sound_init_of(TSEL,ENGI_CZ);designer_open();press(B_OCTUP);
-    designer_at("CZ VIBRATO",0);designer_cz_put(LCZ_VDEP,0);turn(EN_K2,1);
-    failures+=check("turning CZ vibrato RATE gives it depth",cz_patch[0].raw[11]!=0 && designer_need()==DF_NONE);
-    designer_at("CZ DETUNE",0);designer_cz_put(LCZ_LINE,0);turn(EN_K4,1);
-    failures+=check("turning a line-2 DETUNE selects 1+2'",designer_feat_get(DF_LINES)==2u && designer_need()==DF_NONE);
+    designer_close(0);sound_init_of(TSEL,3);designer_open();press(B_OCTUP);
+    designer_at("SCL",0);turn(EN_K2,1);
+    failures+=check("turning a track value shapes it",designer_need()==DF_NONE);
     designer_close(0);
 }
 /* FEATURES' row of path f (KNOB 1 turns it: the knob returned) */
@@ -111,7 +109,7 @@ static void designer_render(int32_t *pcm)
 }
 static void feature_tests(void)
 {
-    static const uint8_t engines[]={ENGI_PROPHET,ENGI_FM6,ENGI_CZ,3};
+    static const uint8_t engines[]={ENGI_PROPHET,ENGI_FM6,3};
     int first=1,states=1,audible=1,steady=1,drums=1;
     for(uint32_t ei=0;ei<NENG_SHOWN;ei++){
         eng_state_reset();ui_power_on();sound_init_of(TSEL,eng_vis(ei));designer_open();press(B_OCTUP);
@@ -135,15 +133,11 @@ static void feature_tests(void)
             states&=designer_feat_get(f)==0;
             designer_render(pcm_off);designer_render(pcm_again);
             if(memcmp(pcm_off,pcm_again,sizeof pcm_off)){printf("unsteady render: %s %s\n",ENGINES[TSEL->eng_req]->name,DF_WORD[f]);steady=0;}
-            turn(EN_K1+knob,1);if(f==DF_LINES)turn(EN_K1+knob,1);   /* (LINE2 alone may equal LINE1: 1+2') */
+            turn(EN_K1+knob,1);
             states&=designer_feat_get(f)!=0;
             designer_render(pcm_on);
-            /* INIT's two CZ lines are equal (1+2' sounds once line 2 is shaped: its controls are live);
-             * SPREAD places voices after the track, in the stereo mix */
-            if(f==DF_LINES)audible&=cz_ed_active(cz_patch[0].raw,LCZ_LBASE(1)+LCZ_W1) && cz_ed_active(cz_patch[0].raw,LCZ_MOD);
-            else if(f==DF_SPREAD)audible&=TSEL->p[P_SPRD]>0 && trk_vmode(TSEL)==V_POLY;
+            if(f==DF_SPREAD)audible&=TSEL->p[P_SPRD]>0 && trk_vmode(TSEL)==V_POLY;
             else if(!memcmp(pcm_off,pcm_on,sizeof pcm_on)){printf("inaudible feature: %s %s\n",ENGINES[TSEL->eng_req]->name,DF_WORD[f]);audible=0;}
-            if(TSEL->eng_req==ENGI_CZ)states&=cz_patch_valid(cz_patch[0].raw);
         }
         designer_close(1);
     }
@@ -178,10 +172,10 @@ static void feature_tests(void)
 static void audition_tests(void)
 {
     int quiet=1,keys=1;
-    for(uint32_t e=0;e<3u;e++){
-        static const uint8_t engines[]={ENGI_PROPHET,ENGI_FM6,ENGI_CZ};
+    for(uint32_t e=0;e<2u;e++){
+        static const uint8_t engines[]={ENGI_PROPHET,ENGI_FM6};
         eng_state_reset();ui_power_on();sound_init_of(TSEL,engines[e]);designer_open();press(B_OCTUP);
-        turn(EN_K1+designer_feature(engines[e]==ENGI_FM6?DF_OP1+1:engines[e]==ENGI_CZ?DF_RING:DF_PULSEA),1);
+        turn(EN_K1+designer_feature(engines[e]==ENGI_FM6?DF_OP1+1:DF_PULSEA),1);
         press(B_OCTUP);turn(EN_SELECT,1);turn(EN_K1,1);press(B_SAVE);press(B_SAVE);
         quiet&=!song.playing && !transport_req && !seq_counting();
         for(uint32_t i=0;i<NVOICE;i++)quiet&=!TSEL->v[i].active;
@@ -197,7 +191,7 @@ static void audition_tests(void)
 }
 static void route_recipe_tests(void)
 {
-    int coverage=1,audible=1,valid=1,clean=1;
+    int coverage=1,audible=1,clean=1;
     for(uint32_t ei=0;ei<NENG_SHOWN;ei++)for(uint32_t goal=0;goal<DG_COUNT;goal++){
         eng_state_reset();ui_power_on();sound_init_of(TSEL,eng_vis(ei));
         designer_open();ds.current=0;ds.goal=(uint8_t)goal;ds.expert=1;press(B_OCTUP);
@@ -209,7 +203,6 @@ static void route_recipe_tests(void)
             }
         }
         clean &= !song.grid && !kb_mask ;
-        if(TSEL->eng_req==ENGI_CZ)valid &= cz_patch_valid(cz_patch[0].raw);
         TSEL->engine=TSEL->eng_req;memset(TSEL->v,0,sizeof TSEL->v);eng_state_clear(0);eng_state_prepare(TSEL);
         trk_note_on(TSEL,drum_track(TSEL)?36:60,100);int64_t energy=0;int32_t out[CTL];
         for(uint32_t k=0;k<1000;k++){track_render(TSEL,out,CTL);for(uint32_t n=0;n<CTL;n++)energy+=llabs(out[n]);}
@@ -219,7 +212,6 @@ static void route_recipe_tests(void)
     }
     failures+=check("ALL pages: every eligible page, each FM operator switched on, nothing switched off",coverage);
     failures+=check("every engine and goal recipe produces audio through the real DSP",audible);
-    failures+=check("all CZ goal recipes retain valid native envelope records",valid);
     failures+=check("wizard keys stay playable and do not become layer/grid shortcuts",clean);
 }
 static void save_tests(void)

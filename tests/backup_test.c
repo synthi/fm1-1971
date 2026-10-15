@@ -204,33 +204,15 @@ static int full_pattern_archive(void)
 }
 static int native_archive(void)
 {
-    reset();up_boot();int ok=1;uint8_t fm[FM6_PACKED],cz[CZ_BYTES];
+    reset();up_boot();int ok=1;uint8_t fm[FM6_PACKED];
     const uint32_t slots[4]={0,16,32,63},ids[4]={21,22,19,20};static native_fm_t saved[4];
-#if MELODEE_CZ
-    static cz_bank_t savedcz;
-#endif
     for(uint32_t b=0;b<4;b++){fm6_factory(b,fm);ok &= !native_put(ENGI_FM6,slots[b],fm);saved[b]=(*native_fm_bank(b));}
-#if MELODEE_CZ
-    cz_patch_init(cz);cz[128]='Z';ok &= !native_put(ENGI_CZ,127,cz);savedcz=(*native_cz_bank(7));
-#endif
     for(uint32_t b=0;b<4;b++){uint32_t len;const uint8_t *raw=ed_bk_object(ids[b],&len);ok &= len==sizeof saved[b] && !memcmp(raw,&saved[b],len);ok &= !native_put(ENGI_FM6,slots[b],0);}
-#if MELODEE_CZ
-    ok &= !native_put(ENGI_CZ,127,0);
-#endif
     for(uint32_t b=0;b<4;b++)ok &= !put_all(ids[b],(uint8_t *)&saved[b],sizeof saved[b],st_crc32(&saved[b],sizeof saved[b]));
-#if MELODEE_CZ
-    ok &= !put_all(16,(uint8_t *)&savedcz,sizeof savedcz,st_crc32(&savedcz,sizeof savedcz));
-#endif
     native_cache_reset();
-#if MELODEE_CZ
-    cz_bank_cached=255;
-#endif
     up_boot();
     for(uint32_t b=0;b<4;b++)ok &= !memcmp(native_fm_bank(b),&saved[b],sizeof saved[b]);
-#if MELODEE_CZ
-    ok &= native_used(ENGI_CZ,127) && !memcmp(native_raw(ENGI_CZ,127),cz,sizeof cz);
-#endif
-    (void)cz;
+    (void)fm;
     return check("all four native FM6 objects and Z128 restore exactly after reboot",ok);
 }
 static int prophet_archive(void)
@@ -306,7 +288,7 @@ int main(void)
         bad+=check("previous TPLF settings archive restores through PUT and remains dry",
             n==sizeof(tmpl_fx_legacy_t) && put_all(1,old_settings,sizeof old_settings,st_crc32(old_settings,sizeof old_settings))==0 &&
             template_used() && tmpl.t[0].p[P_E0]==17 && !tmpl.t[0].p[P_FXTYPE]);
-        uint32_t before=erases;old_settings[sizeof defaults+__builtin_offsetof(tmpl_fx_legacy_t,cz)+2u]=255;
+        uint32_t before=erases;old_settings[sizeof defaults+__builtin_offsetof(tmpl_fx_legacy_t,p5)+2u]=255;
         bad+=check("damaged previous template is refused before any flash erase",
             put_all(1,old_settings,sizeof old_settings,st_crc32(old_settings,sizeof old_settings))==2 && erases==before);
     }
@@ -465,13 +447,8 @@ int main(void)
     reset();
     {
         uint8_t old[3080]; memset(old, 0x5a, sizeof old);
-#if MELODEE_CZ
-        const uint32_t objects[] = {OBJ_SETTINGS, OBJ_UPRESET0, OBJ_NATIVEFM0, OBJ_CZBANK0};
-        const uint32_t ids[] = {1u, 6u, 21u, 9u};
-#else
         const uint32_t objects[] = {OBJ_SETTINGS, OBJ_UPRESET0, OBJ_NATIVEFM0};
         const uint32_t ids[] = {1u, 6u, 21u};
-#endif
         int intact = 1;
         for (uint32_t k = 0; k < NELEM(objects); k++) intact &= st_save(objects[k], old, sizeof old) == 0;
         up_cache_reset(); native_cache_reset(); persist_old = 1;
@@ -501,25 +478,6 @@ int main(void)
         b.nslot = 3;
         bad += check("a bank with the wrong slot count is refused", put_all(7, &b, sizeof b, st_crc32(&b, sizeof b)) == 2u);
     }
-#if MELODEE_CZ
-    {   /* CZ-1 banks: a never-saved bank (BANK A..D: Casio's factory tones) is no object of the backup, so a
-         * restore keeps it the default; a saved one is carried byte for byte */
-        static cz_bank_t cb;
-        reset();
-        cz_bank_boot();
-        bad += check("CZ-1: a never-saved BANK A (its factory default) lists as length 0",
-                     list(9, &len, &crc) == 0 && len == 0 && cz_bank_load(0)->used == 0xFFFFu);
-        cz_bank_empty(&cb, 0);
-        memcpy(cb.tone[3].raw, cz_fac(7), CZ_BYTES);
-        cb.used = 1u << 3;
-        bad += check("CZ-1: a saved BANK A restores and lists with its 2332 B",
-                     put_all(9, &cb, sizeof cb, st_crc32(&cb, sizeof cb)) == 0 && list(9, &len, &crc) == 0 &&
-                     len == sizeof cb && cz_bank_load(0)->used == 1u << 3);
-        bad += check("CZ-1: length 0 clears native presets while keeping factory tones separate",
-                     put_all(9, &cb, 0, st_crc32(&cb, 0)) == 0 && !native_cz_bank(0)->used &&
-                     list(9, &len, &crc) == 0 && len == sizeof(cz_bank_t));
-    }
-#endif
     bad += native_archive();
     bad += prophet_archive();
     bad += full_pattern_archive();

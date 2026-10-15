@@ -435,7 +435,7 @@ enum { S_HOME, S_HOME_IDLE, S_HOME_NOTE, S_HOME_CHORD, S_HOME_INVERSION, S_HOME_
        S_ENV, S_ENVDEST, S_LFO, S_MOD, S_SCL, S_CHORD, S_CHORD_WIDE, S_CHORD_OFF, S_CHORD_KIT, S_ARP, S_VOICE, S_GLOBAL, S_SYSTEM,
        S_EDIT_SID, S_EDIT_DIGITAL, S_OP_ENV, S_EDIT_WHEEL, S_EDIT_PHYS,
        S_ALG1, S_ALG2, S_ALG3, S_ALG4, S_ALG5, S_ALG6, S_ALG7, S_ALG8, S_OP_LEVEL,
-       S_FM6_ALG1, S_FM6_ALG5, S_FM6_ALG22, S_FM6_ALG32, S_FM6_FREQ, S_FM6_EG, S_FM6_PEG, S_FM6_STORE, S_CZ1_ENV,
+       S_FM6_ALG1, S_FM6_ALG5, S_FM6_ALG22, S_FM6_ALG32, S_FM6_FREQ, S_FM6_EG, S_FM6_PEG, S_FM6_STORE,
        S_CONFIRM_SEQ, S_CONFIRM_PROJ, S_CONFIRM_USER, S_CONFIRM_MOTION, S_CONFIRM_ERASE,
        S_MENU, S_ABOUT, S_ABOUT_REC, S_ABOUT_CREDITS, S_ABOUT_END, S_UBOOT, S_CALIBRATION,
        S_BATT0, S_BATT1, S_BATT2, S_BATT3, S_BATT_USB, S_MOTION_REC, S_MOTION_OFF, S_SONG_HOME,
@@ -446,9 +446,9 @@ enum { S_HOME, S_HOME_IDLE, S_HOME_NOTE, S_HOME_CHORD, S_HOME_INVERSION, S_HOME_
        S_SLICES_BREAK, S_SLICES_USR,
 #endif
        S_ROLL_EMPTY, S_ROLL_ACID, S_ROLL_CHORDS, S_ROLL_TIES, S_ROLL_LEN32, S_ROLL_HIGH, S_ROLL_LOW, S_ROLL_WIDE, S_ROLL_PLAYING,
-       S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG, S_MOCK_MENU, S_NATIVE_FM_USER, S_NATIVE_CZ_USER,
+       S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG, S_MOCK_MENU, S_NATIVE_FM_USER,
        S_NOTES_SLIDE, S_NOTES_MIXED, S_NOTES_CHORD, S_NOTES_EMPTY, S_NOTES_RAW, S_NOTES_ZOOM, S_NOTES_LOOP, S_NOTES_DRUM, S_NOTES_DENSE, S_NOTES_REC, S_NOTES_ERASE, S_NOTES_DRUM_REC, S_NOTES_DRUM_ERASE, S_SCL_MICRO, S_SCL_MICRO_LAYER, S_SCL_MICRO_CHORD, S_SCALE_PICKER_EDO, S_SCALE_PICKER_HIST, S_SCALE_PICKER_FAV, S_SCALE_PICKER_EMPTY, S_SCALE_SETTINGS_FAV, S_MENU_CLICK, S_MENU_CLICK_LEVEL, S_MENU_COUNTIN, S_MENU_PREVIEW, S_MENU_ADD, S_MENU_AUTOSAVE_ON, S_MENU_AUTOSAVE_OFF, S_DRUM_SOUND_808, S_DRUM_SOUND_909, S_DRUM_MIX_909, S_DRUM_HIT_909, S_DRUM_HIT_FREE, S_DRUM_HIT_LONG,
-       S_STAGE_DRUM, S_STAGE_CZ, S_STAGE_P5, S_STAGE_QUEUED, S_STAGE_BROWSE, S_STAGE_STOPPED, S_STAGE_FILTER, S_PATGRID, S_PATGRID_STOPPED, S_PATGRID_SHEET, S_PATGRID_COPY, S_PATGRID_REPLACE, S_PATGRID_DELETE, S_PROJECT_NEW, S_NEW_KEY, S_NEW_ROLES,
+       S_STAGE_DRUM, S_STAGE_P5, S_STAGE_QUEUED, S_STAGE_BROWSE, S_STAGE_STOPPED, S_STAGE_FILTER, S_PATGRID, S_PATGRID_STOPPED, S_PATGRID_SHEET, S_PATGRID_COPY, S_PATGRID_REPLACE, S_PATGRID_DELETE, S_PROJECT_NEW, S_NEW_KEY, S_NEW_ROLES,
        S_REF_STAGE_HELD, S_REF_STAGE_RELEASED, S_REF_STAGE_CUTOFF, S_REF_STAGE_DRUM, S_REF_BROWSER, S_REF_PATTERNS, S_REF_SONG,
        S_REF_ENV, S_REF_LFO, S_REF_EDIT_OSC, S_REF_MIXER, S_REF_NOTES, S_REF_SETTINGS, S_REF_DIALOG,
        S_REF_SHEET_SOUND, S_REF_SHEET_SONG, S_REF_PICKER_WAVE, S_REF_PICKER_MODE, S_REF_SECTIONS_P5, S_REF_MAP_P5, S_REF_MAP_FM6,
@@ -459,7 +459,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "home_note", "h
     "project", "project_boot", "tempo", "song_empty", "song", "step", "pattern", "motion", "drum",
     "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "scl", "chord", "chord_wide", "chord_off", "chord_kit", "arp",
     "voice", "global", "system", "edit_sid", "edit_fm6", "op_env", "edit_wheel",
-    "edit_phys", "alg_1", "alg_2", "alg_3", "alg_4", "alg_5", "alg_6", "alg_7", "alg_8", "op_level", "fm6_alg_01", "fm6_alg_05", "fm6_alg_22", "fm6_alg_32", "fm6_freq", "fm6_eg", "fm6_peg", "fm6_store", "cz1_env", "confirm_seq", "confirm_project", "confirm_user",
+    "edit_phys", "alg_1", "alg_2", "alg_3", "alg_4", "alg_5", "alg_6", "alg_7", "alg_8", "op_level", "fm6_alg_01", "fm6_alg_05", "fm6_alg_22", "fm6_alg_32", "fm6_freq", "fm6_eg", "fm6_peg", "fm6_store", "confirm_seq", "confirm_project", "confirm_user",
     "confirm_motion", "confirm_erase", "menu", "about", "about_rec", "about_credits", "about_end", "uboot", "calibration",
     "batt_0", "batt_1", "batt_2", "batt_3", "batt_usb", "motion_rec", "motion_off", "song_home",
     "menu_hold", "menu_usb", "menu_usb_stereo", "menu_usb_tracks",
@@ -471,9 +471,9 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "home_note", "h
     "slices_break", "slices_usr",
 #endif
     "roll_empty", "roll_acid", "roll_chords", "roll_ties", "roll_len32_p2", "roll_high", "roll_low", "roll_wide", "roll_playing",
-    "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "native_fm_user", "native_cz_user",
+    "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "native_fm_user",
     "notes_slide", "notes_mixed", "notes_chord", "notes_empty", "notes_raw", "notes_zoom", "notes_loop", "notes_drum", "notes_dense", "notes_rec", "notes_erase", "notes_drum_rec", "notes_drum_erase", "scl_micro", "scl_micro_layer", "scl_micro_chord", "scale_picker_edo", "scale_picker_historical", "scale_picker_favorites", "scale_picker_empty", "scale_settings_favorite", "menu_click", "menu_click_level", "menu_countin", "menu_preview", "menu_add", "menu_autosave_on", "menu_autosave_off", "drum_sound_808", "drum_sound_909", "drum_mix_909", "drum_hit_909", "drum_hit_free", "drum_hit_long",
-    "stage_drum", "stage_cz", "stage_p5", "stage_queued", "stage_browse", "stage_stopped", "stage_filter", "patterns", "patterns_stopped", "patterns_sheet", "patterns_copy", "patterns_replace", "patterns_delete", "project_new", "new_key", "new_roles",
+    "stage_drum", "stage_p5", "stage_queued", "stage_browse", "stage_stopped", "stage_filter", "patterns", "patterns_stopped", "patterns_sheet", "patterns_copy", "patterns_replace", "patterns_delete", "project_new", "new_key", "new_roles",
     "ref_stage_held", "ref_stage_released", "ref_stage_cutoff", "ref_stage_drum", "ref_browser", "ref_patterns", "ref_song", "ref_env", "ref_lfo", "ref_edit_osc", "ref_mixer", "ref_notes", "ref_settings", "ref_dialog", "ref_sheet_sound", "ref_sheet_song", "ref_picker_wave", "ref_picker_mode", "ref_sections_p5", "ref_map_p5", "ref_map_fm6", "ref_scl_list", "ref_sheet_project", "ref_sheet_note", "ref_sheet_hit", "ref_motion", "ref_sheet_motion", "ref_mod", "ref_picker_mod", "ref_arp", "ref_pattern", "ref_fmeg", "ref_grid", "ref_scales", "fx_phaser", "fx_width", "fx_formant", "fx_tape", "fx_spit", "fx_echo", "fx_room", "fx_reverb", "fx_chorus", "fx_full", "fx_slot2", "fx_slot3", "fx_send", "fx_separate", "fx_sends", "fx_bus1", "fx_bus2", "fx_bus3"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
@@ -652,7 +652,7 @@ static void ref_scene(int s)
     song.playing = 0;
     set_engine_of(&trk[0], ENGI_DRUM); apply_preset_to(&trk[0], preset_named(ENGI_DRUM, "909 KIT"));
     set_engine_of(&trk[1], ENGI_PROPHET); apply_preset_to(&trk[1], 33);           /* Pickle Pincher */
-    set_engine_of(&trk[2], ENGI_CZ); apply_preset_to(&trk[2], preset_named(ENGI_CZ, "ELEC.PIANO"));
+    set_engine_of(&trk[2], ENGI_FM6); apply_preset_to(&trk[2], preset_named(ENGI_FM6, "E.PIANO 1"));
     set_engine_of(&trk[3], ENGI_FM6); apply_preset_to(&trk[3], preset_named(ENGI_FM6, "BRASS SECT"));
     for (k = 0; k < NTRK; k++) {
         trk[k].engine = trk[k].eng_req;
@@ -918,7 +918,7 @@ static void setup(int s)
     case S_PRESETS_CAT: list_set(LM_CAT + 5u); eng(ENGI_PROPHET); go_page(GR_BROWSE); break;   /* STRING */
     case S_PRESETS_PENDING: {                                               /* a fast turn, still moving */
         uint32_t total;
-        eng(ENGI_CZ); go_page(GR_BROWSE); brw.on = 1; brw.trk = song.sel; brw.mode = (uint8_t)list_mode();
+        eng(ENGI_FM6); go_page(GR_BROWSE); brw.on = 1; brw.trk = song.sel; brw.mode = (uint8_t)list_mode();
         brw.n = (uint16_t)(list_cur(&total) + 9u); brw.t = fm1_ms; break;
     }
     case S_PRESETS_RECENT: list_set(LM_RECENT); go_page(GR_BROWSE); break;
@@ -988,9 +988,8 @@ static void setup(int s)
         break;
     }
     case S_STEP: song.rec = 1; go_page(GR_ROLL); ui.cursor = 6; break;
-    /* Stage: the drum track selected, three lanes just hit; CZ-1's and PROPHET's own knobs (CZ-1's KNOB 3 just
-     * turned); track 2 waiting for pattern 3 (blinking: drawn lit), track 3 muted, track 2 armed; browsing (a sound
-     * shown, not loaded); stopped with notes let go */
+    /* Stage: the drum track selected, three lanes just hit; PROPHET's own knobs; track 2 waiting for pattern 3 (blinking:
+ * drawn lit), track 3 muted, track 2 armed; browsing (a sound shown, not loaded); stopped with notes let go */
     /* NEW SONG: PROJECT with NEW picked (KNOB 3: OCT+); the KEY screen (KNOB 3 TEMPO just turned); ROLES */
     case S_PROJECT_NEW: song.playing = 0; go_page(GR_SLOTS); song.g[G_SLOT] = PROJ_TMPL; ui.proj_new = 1; ui.act = 3; break;
     case S_NEW_KEY:
@@ -1001,9 +1000,6 @@ static void setup(int s)
         break;
     case S_STAGE_DRUM:
         drum(0); go_home(); trk[3].seq_idx = 9; drum_flash[3] = 1u | 8u | 32u; break;
-    case S_STAGE_CZ:
-        eng(ENGI_CZ); apply_preset(3); go_home(); ui.hot_col = 2; ui.hot_t = 30; stage_out();
-        input_on(TSEL, 48, 100); input_on(TSEL, 55, 100); input_on(TSEL, 64, 100); break;
     case S_STAGE_P5:
         eng(ENGI_PROPHET); go_home(); input_on(TSEL, 62, 100); input_on(TSEL, 65, 100); input_on(TSEL, 69, 100);
         input_on(TSEL, 72, 100); ui.hot_col = 0; ui.hot_t = 30; stage_out(); break;   /* (CUTOFF turning: the filter's curve) */
@@ -1168,7 +1164,6 @@ static void setup(int s)
         eng(ENGI_FM6); song.playing = 0; fm6_factory(5, fm6_buf); (void)native_store(ENGI_FM6, 63, song.sel, "WOOD BARS");
         go_title("STORE"); fm6_bslot = 63;
         break;
-    case S_CZ1_ENV: eng(ENGI_CZ); go_title("C1 WAV R1-4"); break;   /* INIT TONE: R1 R2 live, R3 R4 dim (END 2) */
     case S_CONFIRM_SEQ: ui.confirm = CF_CLEAR_SEQ; ui.confirm_trk = 2; break;
     case S_CONFIRM_PROJ: ui.confirm = CF_OVR_PROJ; ui.confirm_trk = 0; break;
     case S_CONFIRM_USER: song.playing = 0; up_store(6, "A VERY LONG SOUND NAME"); ui.confirm = CF_OVR_USER; ui.confirm_trk = 6; break;
@@ -1276,7 +1271,6 @@ static void setup(int s)
         break;
 #endif
     case S_NATIVE_FM_USER: eng(ENGI_FM6); song.playing=0; native_store(ENGI_FM6,63,song.sel,"LAST VOICE"); ui.uslot=63; go_page(GR_USER); break;
-    case S_NATIVE_CZ_USER: eng(ENGI_CZ); song.playing=0; native_store(ENGI_CZ,127,song.sel,"LAST CZ TONE"); ui.uslot=127; go_page(GR_USER); break;
     default: break;
     }
 }
@@ -1666,8 +1660,7 @@ static void designer_sweep(const char *out)
             snprintf(name,sizeof name,"%s/designer %s %s OP%u",UI_PALETTES[palid].name,ENGINES[TSEL->eng_req]->name,cur_page()->title,fm6_opsel+1);cur_name=name;
             nscr=npend=0;ui.force=1;ui_draw();lint();if(palid==UI_GRAY_INDEX)mono_check();
             if(night && ((TSEL->eng_req==ENGI_PROPHET && str_eq(cur_page()->title,"P5 POLYMOD")) ||
-                (TSEL->eng_req==ENGI_FM6 && str_eq(cur_page()->title,"FREQ") && fm6_opsel==0) ||
-                (TSEL->eng_req==ENGI_CZ && str_eq(cur_page()->title,"CZ1 WAVE")))){
+                (TSEL->eng_req==ENGI_FM6 && str_eq(cur_page()->title,"FREQ") && fm6_opsel==0))){
                 snprintf(file,sizeof file,"designer_%u",TSEL->eng_req);write_ppm(out,"NIGHT",file);
             }
         }
@@ -1689,16 +1682,16 @@ static void designer_sweep(const char *out)
 }
 static void library_note_sweep(const char *out)
 {
-    static const char *const names[]={"sysex_import_fm6","sysex_import_cz","sysex_import_p5","preset_bulk","notes_bulk","notes_fractional","preset_bulk_confirm","sysex_import_confirm","notes_bulk_menu","notes_quantize_pattern","notes_quantize_selected","notes_move_single","notes_copy_single","notes_menu_manual"};
+    static const char *const names[]={"sysex_import_fm6","sysex_import_fm6b","sysex_import_p5","preset_bulk","notes_bulk","notes_fractional","preset_bulk_confirm","sysex_import_confirm","notes_bulk_menu","notes_quantize_pattern","notes_quantize_selected","notes_move_single","notes_copy_single","notes_menu_manual"};
     for(uint32_t p=0;p<UI_PAL_ENTRIES;p++)for(uint32_t scene=0;scene<NELEM(names);scene++){
         char title[64];state();song.playing=0;pal(p);
         if(scene<3u){
-            uint8_t raw[CZ_BYTES];uint32_t e,size;
+            uint8_t raw[FM6_PACKED];uint32_t e,size;
             if(scene==0){e=ENGI_FM6;size=FM6_PACKED;memcpy(raw,FM6_INIT,size);}
-            else if(scene==1){e=ENGI_CZ;size=CZ_BYTES;cz_patch_init(raw);memcpy(raw+128,"FULL IMPORT NAME",16);}
+            else if(scene==1){e=ENGI_FM6;size=FM6_PACKED;fm6_factory(3,raw);}
             else {e=ENGI_PROPHET;size=sizeof(p5_patch_t);p5_patch_t patch;p5_patch_init(&patch);memcpy(patch.raw+P5_NAME,"TWENTY IMPORT BYTES!!",20);memcpy(raw,&patch,size);}
             sysex_stage(e,raw,1,size);ui.uslot=15;ui.msg_t=0;slot_enter();
-        } else if(scene==3u){eng(ENGI_CZ);go_page(GR_USER);ui.uslot=15;bulk=(typeof(bulk)){.on=1,.engine=ENGI_CZ,.anchor=12,.end=15};slot_enter();}
+        } else if(scene==3u){eng(ENGI_FM6);go_page(GR_USER);ui.uslot=15;bulk=(typeof(bulk)){.on=1,.engine=ENGI_FM6,.anchor=12,.end=15};slot_enter();}
         else if(scene==6u||scene==7u){eng(ENGI_FM6);go_page(GR_USER);sx_import.count=32;confirm_open(scene==6u?CF_BULK_ERASE:CF_IMPORT,0);}
         else {go_page(GR_ROLL);cursor_set(2);TSEL->step[2]=(step_t){{60},1,ST_NOTE,0,96};TSEL->step[5]=(step_t){{64},1,ST_NOTE,0,96};
             if(scene==4u)bulk=(typeof(bulk)){.on=1,.anchor=2,.end=5};

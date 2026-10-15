@@ -78,9 +78,6 @@ static void test_editing_tools(void)
     set_engine_of(TSEL,ENGI_FM6);TSEL->engine=TSEL->eng_req;page_named("ALGO");
     uint8_t patch[FP_SIZE+1];memcpy(patch,fm6_patch[0],sizeof patch);
     btn_down(B_LFO);turn(EN_K1,1);assert(momentary.active);fm1_in.buttons=0;frame();assert(!memcmp(patch,fm6_patch[0],sizeof patch));
-    set_engine_of(TSEL,ENGI_CZ);TSEL->engine=TSEL->eng_req;
-    page_named("CZ LINE");
-    cz_patch_t cz=cz_patch[0];btn_down(B_LFO);turn(EN_K1,1);assert(momentary.active);fm1_in.buttons=0;frame();assert(!memcmp(&cz,cz_patch,sizeof cz));
     set_engine_of(TSEL,ENGI_PROPHET);TSEL->engine=TSEL->eng_req;page_named("P5 FILTER");
     p5_patch_t p5=*p5_patch_of(TSEL);TSEL->p[P_PRIO]=2;btn_down(B_LFO);turn(EN_K1,-1);assert(momentary.active);fm1_in.buttons=0;frame();
     assert(!memcmp(&p5,p5_patch_of(TSEL),sizeof p5) && TSEL->p[P_PRIO]==2);

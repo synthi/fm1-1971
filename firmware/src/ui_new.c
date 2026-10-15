@@ -67,7 +67,7 @@ static void new_create(void)
             continue;                               /* the template's sound is one already */
         if ((src = new_role_sound(nw.role[k], &kk)) == USER_NONE)
             continue;
-        if (src == USER_NATIVE_P5 || src == USER_NATIVE_FM || src == USER_NATIVE_CZ)
+        if (src == USER_NATIVE_P5 || src == USER_NATIVE_FM)
             native_load(src_engine(src, kk), kk, k);
         else if (src == USER_GENERAL)
             up_load(kk);

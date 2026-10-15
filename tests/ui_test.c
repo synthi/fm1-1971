@@ -1086,21 +1086,19 @@ static int test_browser(void)
     for (i = 0; i < NENG_SHOWN; i++)
         ok &= (PRESET_CAT[eng_vis(i)] && PRESET_CAT[eng_vis(i)][0]) || eng_vis(i) == ENGI_DRUM || eng_vis(i) == 11u;
     bad += check("BROWSE: a category letter for each factory preset of every engine shown", ok);
-    bad += check("BROWSE: factory categories (Prophet, FM6, CZ-1, the kits)",
+    bad += check("BROWSE: factory categories (Prophet, FM6, the kits)",
                  preset_cat(ENGI_PROPHET, find_preset(ENGI_PROPHET, "Fat Poly Bass")) == CAT_BASS &&
                  preset_cat(ENGI_PROPHET, find_preset(ENGI_PROPHET, "Pluckity Duck")) == CAT_PLUCK &&
                  preset_cat(ENGI_PROPHET, find_preset(ENGI_PROPHET, "Vintage Wurly")) == CAT_KEYS &&
                  preset_cat(ENGI_PROPHET, find_preset(ENGI_PROPHET, "Choral Voices")) == CAT_PAD &&
                  preset_cat(ENGI_FM6, find_preset(ENGI_FM6, "STEEL DRUM")) == CAT_BELL &&
-                 preset_cat(ENGI_CZ, find_preset(ENGI_CZ, "METALLIC")) == CAT_BELL &&
-                 preset_cat(ENGI_CZ, find_preset(ENGI_CZ, "SAXOPHONE")) == CAT_WIND &&
                  preset_cat(ENGI_DRUM, find_preset(ENGI_DRUM, "909 KIT")) == CAT_DRUM);
     bad += check("BROWSE: a slot's category from its name: a factory sound's of its engine, else its words",
                  cat_guess(ENGI_PROPHET, "Fat Poly Bas") == CAT_BASS &&
                  cat_guess(ENGI_PROPHET, "PICKLE PINCHER") == preset_cat(ENGI_PROPHET, find_preset(ENGI_PROPHET, "Pickle Pincher")) &&
                  cat_guess(ENGI_FM6, "E.PIANO 1") == CAT_KEYS && cat_guess(ENGI_FM6, "SYN-BASS 3") == CAT_BASS &&
                  cat_guess(ENGI_FM6, "PLUCKITY") == CAT_PLUCK && cat_guess(ENGI_FM6, "EPIC LEAD") == CAT_LEAD &&
-                 cat_guess(ENGI_FM6, "TUBULAR BEL") == CAT_BELL && cat_guess(ENGI_CZ, "STRINGS 9") == CAT_STRING &&
+                 cat_guess(ENGI_FM6, "TUBULAR BEL") == CAT_BELL &&
                  cat_guess(ENGI_DRUM, "ANYTHING") == CAT_DRUM && cat_guess(ENGI_FM6, "MY SOUND") == CAT_OTHER);
     preset_all_pos(&all);
     for (i = 0, sum = 0; i < NELEM(CAT_ORDER); i++) {
@@ -1782,9 +1780,6 @@ static int test_init_scales_patterns(void)
     sound_name(TSEL, nm);
     bad += check("INIT: the Prophet's: INIT PROPHET (not program 1)", TSEL->eng_req == ENGI_PROPHET && !TSEL->preset &&
                  str_eq(nm, "INIT PROPHET"));
-    sound_init_of(TSEL, ENGI_CZ);
-    sound_name(TSEL, nm);
-    bad += check("INIT: the CZ-1's: INIT TONE", TSEL->eng_req == ENGI_CZ && !TSEL->preset && str_eq(nm, "INIT TONE"));
     set_engine_of(TSEL, ENGI_FM6);
     hold(B_OCTUP);
     sheet_do("Init sound");
@@ -1889,19 +1884,6 @@ static int test_native_env_lfo(void)
     int bad = 0, o;
     uint32_t i, found = 0;
     ui_power_on();
-    set_engine_of(TSEL, ENGI_CZ);
-    open_family(FAM_ENV);
-    bad += check("ENV on CZ-1: Line 1's pitch envelope, ENV lit", str_eq(cur_page()->title, "C1 PIT R1-4") && cur_fam() == FAM_ENV);
-    open_family(FAM_ENV);
-    bad += check("..ENV again: its wave (DCW) envelope", str_eq(cur_page()->title, "C1 WAV R1-4"));
-    for (i = 0; i < NPAGES; i++)
-        found |= PAGES[i].fam == FAM_ENV && page_visible(i);
-    bad += check("..the track's ADSR and ENV DEST hidden", !found);
-    open_family(FAM_LFO);
-    bad += check("LFO on CZ-1: its vibrato, LFO lit", str_eq(cur_page()->title, "CZ VIBRATO") && cur_fam() == FAM_LFO);
-    open_family(FAM_LFO);
-    bad += check("..LFO again: the track LFO (it modulates the CZ-1 too)", str_eq(cur_page()->title, "LFO"));
-    go_home();
     set_engine_of(TSEL, ENGI_PROPHET);
     open_family(FAM_ENV);
     bad += check("ENV on the Prophet: its filter envelope", str_eq(cur_page()->title, "P5 FLT ENV"));
@@ -2594,167 +2576,7 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
     }
     return ok;
 }
-/* CZ-1: every value of the native Casio tone on its own page (cz_edit.h), knob edits written into the
- * 144 bytes; an edit leaves the bytes it does not encode verbatim; SUS stays before END; the TOOLS
- * page copies a line, compares with the tone as loaded, names the tone */
-#if MELODEE_CZ
-static int test_cz1_pages(void)
-{
-    static const char *const CYC[] = {"CZ TOOLS", "CZ LINE", "CZ DETUNE", "CZ VIBRATO",
-        "CZ WINDOW", "CZ1 WAVE", "CZ1 TOUCH",
-        "C1 PIT R1-4", "C1 PIT R5-8", "C1 PIT L1-4", "C1 PIT L5-8", "C1 PIT POINT",
-        "C1 WAV R1-4", "C1 WAV R5-8", "C1 WAV L1-4", "C1 WAV L5-8", "C1 WAV POINT",
-        "C1 AMP R1-4", "C1 AMP R5-8", "C1 AMP L1-4", "C1 AMP L5-8", "C1 AMP POINT",
-        "CZ2 WAVE", "CZ2 TOUCH",
-        "C2 PIT R1-4", "C2 PIT R5-8", "C2 PIT L1-4", "C2 PIT L5-8", "C2 PIT POINT",
-        "C2 WAV R1-4", "C2 WAV R5-8", "C2 WAV L1-4", "C2 WAV L5-8", "C2 WAV POINT",
-        "C2 AMP R1-4", "C2 AMP R5-8", "C2 AMP L1-4", "C2 AMP L5-8", "C2 AMP POINT",
-        "VOICE", "CZ TOOLS"};
-    uint8_t p[LCZ_PACKED], q[LCZ_PACKED], raw[CZ_BYTES], before[CZ_BYTES];
-    uint32_t tr, id, v, i, ok = 1, sane = 1, kept = 1;
-    int bad = 0;
-    ui_power_on();
-    stop_transport();
-    tr = song.sel % NTRK;
-    set_engine_of(TSEL, ENGI_CZ);
-    frame();
-    bad += check("CZ-1 EDIT cycle: tone pages and VOICE, without bank/patch pages", engine_cycle(CYC, NELEM(CYC)));
-    /* every value, every setting: what is put reads back; the others stay (END's level, a SUS past END aside) */
-    for (id = 0; id < LCZ_NP; id++) {
-        if (!CZ_PD[id].label)
-            continue;
-        for (v = (uint32_t)CZ_PD[id].min; v <= (uint32_t)CZ_PD[id].max; v++) {
-            cz_patch_init(cz_patch[tr].raw);
-            cz_ed_decode(p, cz_patch[tr].raw);
-            if (!cz_ed_put(tr, id, v, raw)) {           /* no change: already that, or END's level / SUS */
-                uint32_t k = id - LCZ_EBASE(0, 0), e = LCZ_EBASE(0, 0) + k / 18u * 18u;
-                ok &= p[id] == v || (id >= LCZ_EBASE(0, 0) && id < LCZ_OLD_NP &&
-                                     (k % 18u == 16u || (k % 18u >= 8u && k % 18u < 16u && id - e - 8u == p[e + 17u])));
-                continue;
-            }
-            sane &= cz_patch_valid(raw);
-            cz_ed_decode(q, raw);
-            if (id < LCZ_EBASE(0, 0) || id >= LCZ_OLD_NP || (id - LCZ_EBASE(0, 0)) % 18u != 16u) {   /* (SUS: below) */
-                if (id >= LCZ_EBASE(0, 0) && id < LCZ_OLD_NP && (id - LCZ_EBASE(0, 0)) % 18u >= 8u &&
-                    (id - LCZ_EBASE(0, 0)) % 18u < 16u) {
-                    uint32_t e = LCZ_EBASE(0, 0) + (id - LCZ_EBASE(0, 0)) / 18u * 18u;
-                    if (id - e - 8u == q[e + 17u]) continue;   /* END's own level: always 0 */
-                }
-                ok &= q[id] == v;
-            }
-            for (i = 0; i < LCZ_PACKED; i++)
-                if (i != id && q[i] != p[i] && !(i >= LCZ_EBASE(0, 0) && i < LCZ_OLD_NP &&
-                                                 (i - LCZ_EBASE(0, 0)) % 18u >= 8u))
-                    ok = 0;
-        }
-    }
-    bad += check("CZ-1 every panel value round-trips through the native bytes, alone", ok);
-    bad += check("CZ-1 every edit leaves a valid native tone", sane);
-    /* an imported tone: rates off Melodee's 0..99 grid stay exact unless their own value is turned */
-    cz_patch_init(cz_patch[tr].raw);
-    for (i = 0; i < 8u; i++) cz_patch[tr].raw[CZ_ENV_BASE[0][1] + 2u * i] = (uint8_t)(13u + 7u * i);
-    memcpy(before, cz_patch[tr].raw, CZ_BYTES);
-    if (cz_ed_put(tr, LCZ_EBASE(0, 0) + 9u, 40u, raw))     /* C1 PIT L2 */
-        for (i = 0; i < 8u; i++) kept &= raw[CZ_ENV_BASE[0][1] + 2u * i] == before[CZ_ENV_BASE[0][1] + 2u * i];
-    else
-        kept = 0;
-    for (i = 0; i < 128u; i++)
-        if (raw[i] != before[i] && (i < CZ_ENV_BASE[0][0] - 1u || i > CZ_ENV_BASE[0][0] + 15u)) kept = 0;
-    bad += check("CZ-1 an edit rewrites its own envelope only; imported rates elsewhere stay verbatim", kept);
-    /* the knobs: CZ DETUNE FINE up 5 -> 5; C1 AMP POINT SUS past END -> "-", back down -> END - 1 */
-    cz_patch_init(cz_patch[tr].raw);
-    cz_track_accept(TSEL);
-    go_title("CZ DETUNE");
-    turn(EN_K4, 5);
-    cz_ed_decode(p, cz_patch[tr].raw);
-    bad += check("CZ-1 CZ DETUNE KNOB 4 turns FINE in the track's tone", p[LCZ_FINE] == 5u);
-    go_title("C1 AMP POINT");
-    cz_ed_decode(p, cz_patch[tr].raw);
-    id = LCZ_EBASE(0, 2) + 16u;
-    for (i = 0; i < 12u && p[id] != 8u; i++) { turn(EN_K1, 1); cz_ed_decode(p, cz_patch[tr].raw); }
-    ok = p[id] == 8u;
-    turn(EN_K1, -1);
-    cz_ed_decode(p, cz_patch[tr].raw);
-    bad += check("CZ-1 SUS turned past END shows -, turned back lands before END",
-                 ok && p[id + 1u] && p[id] == p[id + 1u] - 1u);
-    /* TOOLS: COMP swaps with the tone before the edits, 1 > 2 copies line 1 over line 2 */
-    go_title("CZ TOOLS");
-    memcpy(before, cz_patch[tr].raw, CZ_BYTES);
-    turn(EN_K4, 1);
-    press(B_OCTUP);
-    cz_ed_decode(p, cz_patch[tr].raw);
-    ok = p[LCZ_FINE] == 0u;
-    turn(EN_K4, 1);
-    press(B_OCTUP);
-    bad += check("CZ-1 TOOLS COMP: the tone as loaded, then the edit again",
-                 ok && !memcmp(before, cz_patch[tr].raw, CZ_BYTES));
-    cz_patch[tr].raw[14] = 0xA0;                         /* line 1: DBL SINE */
-    turn(EN_K2, 1);
-    press(B_OCTUP);
-    bad += check("CZ-1 TOOLS 1 > 2: line 2 is line 1's block, MOD stays line 1's",
-                 !memcmp(cz_patch[tr].raw + 71, cz_patch[tr].raw + 14, 57) && (cz_patch[tr].raw[72] & 0x38u) == 0u);
-    turn(EN_K1, 1);
-    press(B_OCTUP);
-    ok = name_on() && nm.kind == NK_CZ_NAME && str_eq(nm.s, "INIT");
-    name_close();
-    bad += check("CZ-1 TOOLS NAME opens the tone's 16-character name", ok);
-    return bad;
-}
-#endif
-
-/* CZ-1's factory: Casio's 64 preset tones are PRESETS 1..64 (each loads its tone, BANK A..D, PTCH 1..16) and
- * the default BANK A..D (E..H empty); a saved bank wins, "none" in a restore brings the default back */
-#if MELODEE_CZ
-static int test_cz1_factory(void)
-{
-    const engine_t *e = ENGINES[ENGI_CZ];
-    uint32_t tr, i, ok = 1, n;
-    cz_bank_t *b;
-    static cz_bank_t mine;
-    int bad = 0;
-    ui_power_on();
-    stop_transport();
-    tr = song.sel % NTRK;
-    bad += check("CZ-1 PRESETS: INIT TONE, then Casio's 64 CZ-1 tones", e->npresets == 65u && CZ_FACTORY_N == 64u &&
-                 str_eq(eng_preset(e, 1)->name, "BRASS 1") && str_eq(eng_preset(e, 64)->name, "TYPHOON"));
-    for (i = 1; i <= 64u; i++) {
-        set_engine_of(TSEL, ENGI_CZ);
-        apply_preset_to(TSEL, i);
-        ok &= TSEL->preset == i && TSEL->p[P_E0] == (int16_t)((i - 1u) / 16u) && TSEL->p[P_E1] == (int16_t)((i - 1u) % 16u + 1u) &&
-              !memcmp(cz_patch[tr].raw, cz_fac(i - 1u), CZ_BYTES) && cz_patch_valid(cz_patch[tr].raw);
-        frame();                                         /* (cz_bank_poll: the tone stays, BANK / PTCH already its) */
-        ok &= !memcmp(cz_patch[tr].raw, cz_fac(i - 1u), CZ_BYTES);
-    }
-    bad += check("CZ-1 each factory preset loads its native tone and shows its BANK / PTCH", ok);
-    bad += check("CZ-1 factory tones keep the CZ-1's own LCD names",
-                 !memcmp(cz_fac(0) + 128, "    BRASS 1     ", 16) && !memcmp(cz_fac(45) + 128, "AFRO-PERCUSSION ", 16));
-    apply_preset_to(TSEL, 0);
-    bad += check("CZ-1 INIT TONE is still the init voice", !memcmp(cz_patch[tr].raw + 128, "INIT", 4) && TSEL->p[P_E1] == 0);
-    ok = 1;
-    for (n = 0; n < 8u; n++) {
-        cz_bank_import(n, 0, 0);
-        b = cz_bank_load(n);
-        ok &= !cz_bank_saved && b->used == (n < 4u ? 0xFFFFu : 0u);
-        for (i = 0; n < 4u && i < 16u; i++) ok &= !memcmp(b->tone[i].raw, cz_fac(n * 16u + i), CZ_BYTES);
-    }
-    b = cz_bank_load(1);
-    bad += check("CZ-1 never-saved BANK A..D hold Casio's A-1 .. H-8, E..H empty", ok && !memcmp(b->name, "CZ-1 C1-D8", 10));
-    cz_bank_boot();                                      /* (power-on: persist_boot -> up_boot) */
-    set_engine_of(TSEL, ENGI_CZ);
-    TSEL->p[P_E0] = 2; TSEL->p[P_E1] = 7; frame();
-    bad += check("CZ-1 retired BANK / PTCH values cannot replace the current tone",
-                 !memcmp(cz_patch[tr].raw + 128,"INIT",4));
-    cz_bank_empty(&mine, 0);
-    memcpy(mine.tone[0].raw, cz_fac(63), CZ_BYTES); mine.used = 1u;
-    cz_bank_import(0, (const uint8_t *)&mine, sizeof mine);
-    b = cz_bank_load(0);
-    ok = cz_bank_saved && b->used == 1u && !memcmp(b->tone[0].raw, cz_fac(63), CZ_BYTES);
-    bad += check("CZ-1 a saved BANK A wins over the factory one", ok);
-    cz_bank_import(0, 0, 0);
-    bad += check("CZ-1 a restore without BANK A brings Casio's back", cz_bank_load(0)->used == 0xFFFFu && !cz_bank_saved);
-    return bad;
-}
-#endif
+/* CZ-1 pages: removed with the engine (1971) */
 
 static int test_edit_cycle(void)
 {
@@ -4177,7 +3999,7 @@ static int test_home_notes(void)
     return bad;
 }
 
-/* Stage (HOME, ui_stage.c): the selected track's engine's own four knobs (PROPHET and CZ-1: their native panel values,
+/* Stage (HOME, ui_stage.c): the selected track's engine's own four knobs (PROPHET: its native panel values,
  * edited as their pages edit them), no footer; SEQ > PATTERNS: KNOB k queues track k's pattern; the lights' grammar:
  * dim something there, bright happening now, breathing waiting (the third plane); the DRUM lanes' flashes */
 static uint32_t plane_led(uint32_t plane, uint32_t id)          /* led id in dim plane `plane` (0..2) */
@@ -4203,21 +4025,6 @@ static int test_stage(void)
     turn(EN_K1, before < P5_PANEL[P5_CUTOFF].max ? 1 : -1);
     bad += check("Stage: PROPHET's KNOB 1 is the program's own CUTOFF", stage_page()->scope == SC_P5 &&
                  p5_patch_of(TSEL)->raw[P5_CUTOFF] != before && home_param(2, &vp) && str_eq(home_param(2, &vp)->label, "ENV AMT"));
-    set_engine_of(TSEL, ENGI_CZ);
-    apply_preset(3);
-    go_home();
-    frame();
-    {
-        const param_desc_t *d = home_param(2, &vp);
-        int16_t was = vp ? *vp : -1;
-        uint8_t raw[CZ_BYTES];
-        memcpy(raw, cz_patch[song.sel].raw, CZ_BYTES);
-        turn(EN_K3, was < d->max ? 1 : -1);
-        d = home_param(2, &vp);
-        bad += check("Stage: CZ-1's KNOB 3 detunes the native tone (DETUNE: its FINE)", stage_page()->scope == SC_CZ1 &&
-                     d && vp && *vp != was && memcmp(raw, cz_patch[song.sel].raw, CZ_BYTES) &&
-                     str_eq(stage_label(2, d), "DETUNE"));
-    }
     ui_power_on();
     stop_transport();
     go_page(GR_PATGRID);
@@ -4569,10 +4376,6 @@ int main(void)
     bad += test_layer();
     bad += test_name();
     bad += test_edit_cycle();
-#if MELODEE_CZ
-    bad += test_cz1_pages();
-    bad += test_cz1_factory();
-#endif
     bad += test_fm6_pages();
     bad += test_boot_template();
     bad += test_old_storage_ui();

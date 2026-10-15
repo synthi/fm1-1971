@@ -51,7 +51,7 @@ static int p5_favorite_set(uint32_t slot,int on,int factory);
 static int favorite_has(uint32_t engine, uint32_t preset)
 {
     if(engine==ENGI_PROPHET || engine==USER_NATIVE_P5)return p5_favorite_has(preset,engine==ENGI_PROPHET);
-    if(engine==USER_NATIVE_FM || engine==USER_NATIVE_CZ){if(preset>=(engine==USER_NATIVE_FM?64u:128u))return 0;preset+=engine==USER_NATIVE_FM?24u:65u;engine=engine==USER_NATIVE_FM?ENGI_FM6:ENGI_CZ;}
+    if(engine==USER_NATIVE_FM){if(preset>=64u)return 0;preset+=24u;engine=ENGI_FM6;}
     if (engine == USER_GENERAL)
         return preset < UP_SLOTS && (((preset < 32u ? favorites.user : favorites_user_hi) >> (preset % 32u)) & 1u);
     return engine < NENGINES && engine < 16u && preset < 256u &&
@@ -60,7 +60,7 @@ static int favorite_has(uint32_t engine, uint32_t preset)
 static int favorite_set(uint32_t engine, uint32_t preset, int on)
 {
     if(engine==ENGI_PROPHET || engine==USER_NATIVE_P5)return p5_favorite_set(preset,on,engine==ENGI_PROPHET);
-    if(engine==USER_NATIVE_FM || engine==USER_NATIVE_CZ){if(preset>=(engine==USER_NATIVE_FM?64u:128u))return 0;preset+=engine==USER_NATIVE_FM?24u:65u;engine=engine==USER_NATIVE_FM?ENGI_FM6:ENGI_CZ;}
+    if(engine==USER_NATIVE_FM){if(preset>=64u)return 0;preset+=24u;engine=ENGI_FM6;}
     if (engine >= NENGINES || (engine == USER_GENERAL ? preset >= UP_SLOTS : engine >= 16u || preset >= 256u))
         return 0;
     if (favorite_has(engine, preset) == !!on) return 0;

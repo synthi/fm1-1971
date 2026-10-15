@@ -7,7 +7,7 @@ static int ed_native_handle(uint32_t cmd,const uint8_t *a,uint32_t n)
 {
     if(cmd!=ED_NATIVE)return 0;
     uint32_t e=n?a[0]:127u,op=n>1u?a[1]:127u,k=n>2u?a[2]:127u,rc=n<3u || !native_limit(e) || op>7u || k>=(op==7u?NTRK:native_limit(e));
-    uint8_t raw[CZ_BYTES];
+    uint8_t raw[FM6_PACKED];
     if(!rc){
         if(op==0u){if(n!=4u || !a[3] || a[3]>16u)rc=1;}
         else if(op==1u){if(n!=3u)rc=1;else if(!native_used(e,k))rc=2;}
