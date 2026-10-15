@@ -316,7 +316,6 @@ if sound && [ $TABLES = 1 ]; then
         -DMELODEE_LEGACY_EXTRAS=1 -O2 $FW -- "$OUT/phys_test" build/phys_demo
     t "paired FM6/Prophet voices: serial/concurrent sample equality and eight-voice allocation" dual_core_test \
         -O2 $FW -pthread
-    t "CZ-1: every knob changes a full tone; the dim ones leave INIT and factory tones bit for bit" cz1_knob_test -O2 $FW
     t "native fp32: independent numerical references, exact pitch, quiet signals and fractional envelopes" synth_fpu_test \
         -O2 $FW
     job prophet

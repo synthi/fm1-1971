@@ -42,6 +42,7 @@ static const p5_patch_t *p5_fac(uint32_t k)
     p5_factory(k, p);
     return p;
 }
+#if MELODEE_CZ
 static const uint8_t *cz_fac(uint32_t k)
 {
     static uint8_t s[4][CZ_BYTES];
@@ -50,6 +51,7 @@ static const uint8_t *cz_fac(uint32_t k)
     cz_factory(k, p);
     return p;
 }
+#endif
 #include "../firmware/src/params.c"
 #include "../firmware/src/mod.c"
 #include "../firmware/src/voice.c"
@@ -89,7 +91,6 @@ static uint64_t now_ns(void)
 
 static void host_tracks_init(void)                /* as melodee_init: defaults, empty patterns */
 {
-    cz_init();
     pattern_init();
     uint32_t i, k;
     for (i = 0; i < G_COUNT; i++)
@@ -119,7 +120,6 @@ static void host_preset_values(track_t *t, uint32_t e, uint32_t pi, const preset
     t->p[P_REL] = p->env[3];
     t->p[P_ED_FLT] = p->fenv;
     t->p[P_VOICE] = p->mono ? V_LEGATO : V_POLY;
-    cz_factory_loaded(t);
     if(e==ENGI_PROPHET){uint32_t k=(uint32_t)(t-trk)%NTRK;p5_ready[k]=1;p5_preset_loaded(t,pi);}   /* (its program, as ui.c) */
     fm6_track_loaded(t);                          /* FM6: the preset's patch (ui.c apply_preset_to) */
 }
@@ -147,9 +147,9 @@ static void host_preset(track_t *t, uint32_t e, uint32_t pi)
 /* part k's power-on sound (main.c, TRK_DEF) */
 static void host_power_on_sound(track_t *t, uint32_t k) { host_preset(t, TRK_DEF[k][0], TRK_DEF[k][1]); }
 
-/* the plain synth a test plays when the engine is not what it tests (ANALOG's place until 2.0 retired it): CZ-1,
- * on the generic voice path (NPOLY voices, no cap of its own) as ANALOG was */
-#define HOST_SYNTH ENGI_CZ
+/* the plain synth a test plays when the engine is not what it tests: FM6 (a
+ * generic voice path). 1971: CZ-1 removed; HOST_SYNTH is FM6. */
+#define HOST_SYNTH ENGI_FM6
 
 /* Explicit legacy fixture: hidden from factory browsing, still used by saved GM projects. */
 static void host_808_kit(track_t *t)

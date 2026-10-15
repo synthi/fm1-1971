@@ -218,9 +218,17 @@ static const char *const *native_titles(uint32_t fam)
     static const char *const CZ_LFO[] = {"CZ VIBRATO", 0};
     uint32_t e = TSEL->eng_req;
     if (fam == FAM_ENV)
-        return e == ENGI_PROPHET ? P5_ENV : e == ENGI_FM6 ? FM_ENV : e == ENGI_CZ ? CZ_ENV : 0;
+        return e == ENGI_PROPHET ? P5_ENV : e == ENGI_FM6 ? FM_ENV :
+#if MELODEE_CZ
+               e == ENGI_CZ ? CZ_ENV :
+#endif
+               0;
     if (fam == FAM_LFO)
-        return e == ENGI_PROPHET ? P5_LFO : e == ENGI_FM6 ? FM_LFO : e == ENGI_CZ ? CZ_LFO : 0;
+        return e == ENGI_PROPHET ? P5_LFO : e == ENGI_FM6 ? FM_LFO :
+#if MELODEE_CZ
+               e == ENGI_CZ ? CZ_LFO :
+#endif
+               0;
     return 0;
 }
 static int native_page(uint32_t i, uint32_t fam)       /* page i: one of fam's native pages (a prefix of its title) */
@@ -644,7 +652,9 @@ static uint32_t track_sig(const track_t *t)      /* the sound (an FM6 track's pa
     uint8_t id[4] = {t->eng_req, t->preset, t->user, t->user_native};
     uint32_t h = fnv(fnv(steps_sig(t), t->p, sizeof t->p), id, 3), k = trk_index(t);
     h = fnv(h, fm6_patch[k], sizeof fm6_patch[k]); /* (a patch the editor sent between two loads) */
+#if MELODEE_CZ
     h = fnv(h, cz_patch[k].raw, CZ_BYTES);
+#endif
     h = fnv(h,p5_patch_of(&trk[k]),sizeof(p5_patch_t));
     h = fnv(h,&drum_patch[k],sizeof(drum_patch_t));
     for (uint32_t j = 0; j < motion.count; j++)
@@ -666,7 +676,9 @@ static void momentary_restore(void)
     if(!momentary.active)return;
     uint32_t tr=momentary.track;fm1_irq_off();
     if(momentary.native==1){fm6_put_patch(tr,momentary.fm,0);memcpy(fm6_fn[tr],momentary.fn,FM6_NFN);fm6_on[tr]=momentary.on;}
+#if MELODEE_CZ
     else if(momentary.native==2)cz_patch[tr]=momentary.cz;
+#endif
     else if(momentary.native==3){p5_patch[tr]=momentary.p5;trk[tr].p[P_VOICE]=momentary.p5_voice;trk[tr].p[P_PRIO]=momentary.p5_prio;trk[tr].p[P_DETUNE]=momentary.p5_detune;trk[tr].p[P_ALLOC]=momentary.p5_alloc;}
     for(uint32_t i=0;i<momentary.count;i++)*momentary.ptr[i]=momentary.value[i];
     momentary.active=momentary.count=momentary.native=0;fm1_irq_on();ui.force=1;
@@ -686,7 +698,10 @@ static void momentary_take(uint32_t slot)
     if(native && !momentary.native){
         uint32_t tr=song.sel;fm1_irq_off();momentary.native=(uint8_t)native;
         memcpy(momentary.fm,fm6_patch[tr],sizeof momentary.fm);memcpy(momentary.fn,fm6_fn[tr],FM6_NFN);momentary.on=fm6_on[tr];
-        momentary.cz=cz_patch[tr];momentary.p5=*p5_patch_of(TSEL);
+#if MELODEE_CZ
+        momentary.cz=cz_patch[tr];
+#endif
+        momentary.p5=*p5_patch_of(TSEL);
         momentary.p5_voice=TSEL->p[P_VOICE];momentary.p5_prio=TSEL->p[P_PRIO];momentary.p5_detune=TSEL->p[P_DETUNE];momentary.p5_alloc=TSEL->p[P_ALLOC];fm1_irq_on();
     }
     if(!native){uint32_t i;for(i=0;i<momentary.count && momentary.ptr[i]!=vp;i++);
@@ -729,7 +744,9 @@ static void load_begin(track_t *t, uint32_t what)
     memcpy(u->p, t->p, sizeof u->p);
     memcpy(u->step, t->step, sizeof u->step);
     memcpy(u->fm6, fm6_patch[i], FP_SIZE);
+#if MELODEE_CZ
     u->cz = cz_patch[i];
+#endif
     u->p5 = *p5_patch_of(&trk[i]);
     u->drum=drum_patch[i];
     u->pat = pat_sig[i];
@@ -833,7 +850,9 @@ static void undo_step(int redo)
         memcpy(u->fm6, v, FP_SIZE);
         {drum_patch_t dp=drum_patch[tr];drum_patch[tr]=u->drum;u->drum=dp;}
         { p5_patch_t pp=*p5_patch_of(t);p5_patch[tr]=u->p5;u->p5=pp;p5_ready[tr]=1; }
+#if MELODEE_CZ
         { cz_patch_t cp = cz_patch[tr]; cz_patch[tr] = u->cz; u->cz = cp; cz_track_accept(t); }
+#endif
 
     }
     u->keep = 0;                                /* the next load copies the track as it is now */
@@ -920,8 +939,10 @@ static void apply_preset_to(track_t *t, uint32_t pi)
     t->p[P_ED_FLT] = pr->fenv;
     t->p[P_VOICE] = pr->mono ? V_LEGATO : V_POLY;   /* mono presets keep the legato feel */
     if(t->eng_req==ENGI_PROPHET)p5_preset_loaded(t,pi);
+#if MELODEE_CZ
     cz_factory_loaded(t);
     cz_track_accept(t);
+#endif
     fm6_track_loaded(t);                              /* FM6: the preset's patch */
     load_end(t);
 }
@@ -1078,14 +1099,24 @@ static page_t stage_pg;
 static const page_t *stage_page(void)
 {
     static const uint8_t P5_K[4] = {P5_CUTOFF, P5_RESONANCE, P5_ENV_FILTER, P5_RELEASE_AMP};
+#if MELODEE_CZ
     static const uint8_t CZ_K[4] = {LCZ_LBASE(0) + LCZ_W1, LCZ_EBASE(0, 1) + 8, LCZ_FINE, LCZ_VDEP};
+#endif
     uint32_t e = eng_idx(TSEL->eng_req), k;
     stage_pg.title = "STAGE";
     stage_pg.fam = FAM_HOME;
     stage_pg.graph = GR_NONE;
-    stage_pg.scope = e == ENGI_PROPHET ? SC_P5 : e == ENGI_CZ ? SC_CZ1 : SC_ENGINE;
+    stage_pg.scope = e == ENGI_PROPHET ? SC_P5 :
+#if MELODEE_CZ
+                     e == ENGI_CZ ? SC_CZ1 :
+#endif
+                     SC_ENGINE;
     for (k = 0; k < 4u; k++)
-        stage_pg.id[k] = e == ENGI_PROPHET ? P5_K[k] : e == ENGI_CZ ? CZ_K[k] : ENGINES[e]->knob[k];
+        stage_pg.id[k] = e == ENGI_PROPHET ? P5_K[k] :
+#if MELODEE_CZ
+                         e == ENGI_CZ ? CZ_K[k] :
+#endif
+                         ENGINES[e]->knob[k];
     return &stage_pg;
 }
 /* HOME: what KNOB k edits (0: nothing there) */
@@ -1146,7 +1177,12 @@ static const char *act_name(uint32_t c)          /* column c's action (the foote
         return song.playing || chain_busy() ? "STOP" : "PLAY";
     if (cur_page()->graph == GR_SLICES)
         return c == 3u ? "JOIN" : "SPLIT";
+#if MELODEE_CZ
     return CZ_ACTIONS[c & 3u].label;             /* (CZ TOOLS) */
+#else
+    (void)c;
+    return 0;
+#endif
 }
 
 /* the picked action would do something now (OCT+ blinks) */

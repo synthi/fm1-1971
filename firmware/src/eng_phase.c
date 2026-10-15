@@ -5,108 +5,14 @@
  * author's own phase-distortion core: a -cos table read through a bent phase whose
  * bend is DCW. WAVE2 alternates with WAVE every other cycle. A second
  * line (DTN) can be mixed or ring-modulated; SUB adds a sine an octave down.
- * Native rate/target envelopes run separately for DCO, DCW and DCA on both
- * lines. The existing four-knob controls construct three-point CZ envelopes;
- * they retain Melodee's time scale (not a measured CZ-1 rate calibration).
- * See README.md (PHASE) for controls and remaining fidelity limits. */
+ * Envelopes are Felucca's own (ADSR, ENV -> DCW).
+ * FOLD (E7, 1.5.5, #104): a sine wavefolder on the voice, after the lines and before SUB and the amp. 0 is off (the
+ * loop and the sound as before). Up from 0 a soft sine saturation, then folds: the gain rises to ~8x (four folds of a
+ * full-scale wave). Alias-aware: the sine fold has no corners (a triangle fold's sharp edges are what alias most), and
+ * above A4 the gain added past the saturation falls with the pitch (1/f), so the top notes fold less. */
 static const char *const N_PD_WAVE[] = {"SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
 static const char *const N_PD_WAVE2[] = {"-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
 static const char *const N_PD_LINE[] = {"MIX", "RING"};
-#include "cz_patch.h"
-static const char *const N_PD_ENV[] = {"LINK", "SPLIT"};
-static cz_patch_t cz_patch[NTRK] __attribute__((section(".pool")));
-static void cz_init(void) { for (uint32_t k = 0; k < NTRK; k++) cz_patch_init(cz_patch[k].raw); }
-
-/* Eight rate/target points, with explicit sustain/end. Rates are Q24 per
- * control tick. No exponential asymptote and no extra release after END. */
-typedef struct { uint32_t rate[8]; int32_t level[8]; uint8_t sustain, end; } cz_env_def_t;
-typedef struct { int32_t level; uint8_t stage, gate; } cz_env_t;
-typedef struct { float level; uint8_t stage, gate; } cz_native_env_t;
-typedef struct {
-    union { cz_env_t eg[2][3]; cz_native_env_t native_eg[2][3]; };
-    uint32_t vib_phase, vib_ticks, noise;
-    float native_dc[2];
-} cz_voice_t;
-typedef struct { cz_voice_t v[NPOLY]; } cz_part_t;
-static cz_part_t *cz_part(uint32_t part);              /* engines.c: shared runtime pool */
-static cz_voice_t *cz_voice(track_t *t, voice_t *v)
-{
-    return &cz_part((uint32_t)(t - trk) % NPART)->v[(uint32_t)(v - t->v) % NPOLY];
-}
-
-static int32_t cz_env_tick(cz_env_t *e, const cz_env_def_t *d, uint32_t gate)
-{
-    uint32_t left = 65536u;
-    if (e->gate && !gate && d->sustain <= d->end && e->stage <= d->sustain)
-        e->stage = d->sustain + 1u;                    /* release even during attack */
-    e->gate = (uint8_t)gate;
-    /* Carry unused tick time across points, including zero-distance points.
-     * A short segment must not acquire an extra 32-sample delay. */
-    for (uint32_t k = 0; k < 8u && e->stage <= d->end; k++) {
-        uint32_t st = e->stage, rate = d->rate[st];
-        int32_t target = st == d->end ? 0 : d->level[st];
-        int32_t delta = target - e->level;
-        uint32_t dist = (uint32_t)(delta < 0 ? -delta : delta);
-        uint32_t step = (uint32_t)mulq16((int32_t)rate, left);
-        if (dist > step) {
-            e->level += delta < 0 ? -(int32_t)step : (int32_t)step;
-            break;
-        }
-        e->level = target;
-        if (gate && st == d->sustain) break;
-        e->stage++;
-        if (dist && rate) {
-            uint32_t used = (uint32_t)(((uint64_t)dist << 16) / rate);
-            left = used < left ? left - used : 0;
-        }
-        if (!left) break;
-    }
-    return e->level;
-}
-
-/* A, D and R are speeds across the entire level range: shorter excursions
- * take proportionally less time, as the CZ manual's RATE diagrams specify.
- * Keep stored Melodee times compatible instead of inventing a hardware table. */
-static void cz_env_adsr(cz_env_def_t *d, const int16_t *p, uint32_t base, int32_t peak)
-{
-    memset(d, 0, sizeof *d);
-    d->rate[0] = ENV_LIN[p[base] & 127];
-    d->rate[1] = ENV_LIN[p[base + 1u] & 127];
-    d->rate[2] = ENV_LIN[p[base + 3u] & 127];
-    d->level[0] = peak;
-    d->level[1] = (peak / 127) * p[base + 2u];
-    d->sustain = 1;
-    d->end = 2;
-}
-
-static void cz_defs(track_t *t, cz_env_def_t d[2][3])
-{
-    const int16_t *p = t->p;
-    int split = p[P_E7] != 0;
-    for (uint32_t l = 0; l < 2u; l++) {
-        uint32_t wave = split ? (l ? P_FM2_ATK : P_FM1_ATK) : P_ATK;
-        uint32_t amp = split && l ? P_FM3_ATK : P_ATK;
-        cz_env_adsr(&d[l][0], p, split ? P_FM4_ATK : P_ATK, 1 << 24);
-        cz_env_adsr(&d[l][1], p, wave, 1 << 24);
-        cz_env_adsr(&d[l][2], p, amp, 1 << 24);
-    }
-}
-
-static int phase_done(track_t *t, voice_t *v)
-{
-    cz_voice_t *c = cz_voice(t, v);
-    int line2 = t->p[P_E4] != 0 || t->p[P_E5] != 0;
-    return c->eg[0][2].stage > 2u && (!line2 || c->eg[1][2].stage > 2u);
-}
-
-/* Retired FM4 parameter storage is shared with PHASE's split envelopes. The
- * ids, ranges and defaults remain compatible with existing projects/presets. */
-static const param_desc_t CZ_ED[20] = {
-#define CZ_ROW(n) {"A" n, F_TIME, 0,127,0,0,0}, {"D" n, F_TIME,0,127,0,0,0}, \
-    {"S" n,F_PCT,0,127,127,0,0}, {"R" n,F_TIME,0,127,0,0,0}, {"LV" n,F_PCT,0,127,127,0,0}
-    CZ_ROW("W1"), CZ_ROW("W2"), CZ_ROW("A2"), CZ_ROW("P"),
-#undef CZ_ROW
-};
 
 static inline int32_t pd_cos(uint32_t ph16)             /* -cos, Q15, from the 16-bit PD phase */
 {
@@ -129,7 +35,7 @@ static void pd_setup(pd_t *b, uint32_t w, uint32_t dcw)
     b->w = w;
     switch (w) {
     case 0:                                                  /* SAW */
-        x = 32768u - ((dcw * 31120u) >> 16);
+        x = 32768u + ((dcw * 32767u) >> 16);
         b->k0 = pd_slope(32768u, x);
         b->k1 = pd_slope(32767u, 65535u - x);
         break;
@@ -157,15 +63,14 @@ static void pd_setup(pd_t *b, uint32_t w, uint32_t dcw)
         break;
     default:                                                 /* RESONANCE */
         x = 0;
-        b->rez = (dcw * 7u);
-        b->peak = dcw;
+        b->rez = (dcw * 44000u) >> 16;
         break;
     }
     b->x = x;
 }
 
 /* one sample at phase ph (16 bit): bipolar Q15 */
-static __attribute__((noinline)) int32_t pd_wave(const pd_t *b, uint32_t ph)
+static int32_t pd_wave(const pd_t *b, uint32_t ph)
 {
     uint32_t pd, x = b->x;
     switch (b->w) {
@@ -196,133 +101,167 @@ static __attribute__((noinline)) int32_t pd_wave(const pd_t *b, uint32_t ph)
         else
             pd = 32768u + (((ph - b->peak) * b->k1) >> 16);
         break;
-    default: {                                               /* hard-synced cosine with a window */
-        uint32_t rp = ph + ((ph * (b->rez >> 3)) >> 13), win;
-        int32_t core = pd_cos(rp);
+    default: {                                               /* RESONANCE: windowed sine, rez = pitch of the core */
+        uint32_t rp = (ph + ((ph * b->rez) >> 16) * 7u) & 0xFFFFu, win;
+        int32_t core = (pd_cos(rp) * 5) >> 3;
         if (b->w == 5)
-            win = 65535u - ph;
+            win = 65535u - ph;                               /* saw window */
         else if (b->w == 6)
-            win = ph < 32768u ? ph << 1 : (65535u - ph) << 1;
+            win = ph < 32768u ? ph << 1 : (65535u - ph) << 1; /* triangle window */
         else
-            win = ph < 32768u ? 65535u : (65535u - ph) << 1;
-        /* Window the unipolar carrier, then return to bipolar. Returning to
-         * the baseline at sync avoids a discontinuity when the resonant core
-         * has a fractional number of cycles. Blend with the undistorted cosine
-         * so zero DCW has the same pitch and level as the other five waves. */
-        int32_t shaped = (int32_t)(((uint32_t)(core + 32767) * win) >> 16) - 32767;
-        int32_t plain = pd_cos(ph);
-        return clamp(plain + mulq15((shaped - plain) >> 1, (int32_t)b->peak), -32767, 32767);
-
+            win = ph < 16384u ? ph << 2 : ph > 49152u ? (65535u - ph) << 2 : 65535u;   /* trapezoid */
+        if (win > 65535u)
+            win = 65535u;
+        return (core * (int32_t)win) >> 16;                  /* |core| <= 20479: fits 32 bits */
     }
     }
     return pd_cos(pd);
 }
 
+/* s[4] at FOLD 0: the last block had no fold (phase_render: a FOLD going on or off crossfades a block) */
+#define PD_UNFOLDED (-2147483647 - 1)
+
 static void phase_note_on(track_t *t, voice_t *v)
 {
-    cz_voice_t *c = cz_voice(t, v);
-    memset(c, 0, sizeof *c);
-    for (uint32_t l = 0; l < 2u; l++)
-        for (uint32_t e = 0; e < 3u; e++) c->eg[l][e].gate = 1;
-    v->ph[0] = v->ph[1] = v->ph[2] = 0;
-    v->s[0] = v->s[1] = v->s[4] = 0;
-    if (!voice_was) v->s[2] = v->s[3] = 0;
-    c->noise = 0x6D2B79F5u ^ (uint32_t)(v - t->v) * 0x9E3779B9u;
+    v->ph[1] = 0;
+    v->ph[2] = 0;
+    v->s[0] = 0;                 /* WAVE / WAVE2 toggle, line 1 */
+    v->s[1] = 0;                 /* line 2 */
+    v->s[4] = t->p[P_E7] > 0 ? 0 : PD_UNFOLDED;   /* FOLD's DC blocker (only FOLD > 0 reads them; kept on a */
+    v->s[5] = 0;                                   /* retrigger: .keep) */
+    v->s[6] = 163;               /* FOLD's last gain (phase_xfade): FOLD 1's, PD_FOLD_G0, until a folded block */
 }
 
+/* FOLD's gain (Q8) for a block: 0.64x at FOLD 1 (sin(pi/2 x) then has a small-signal gain of 1: a soft saturation),
+ * ~8x at 127; the part above 0.64x scaled by A4 / the note's pitch above A4 (PD_FOLD_REF: 440 Hz at 44.1 kHz) */
+#define PD_FOLD_G0 163u
+#define PD_FOLD_REF 42852281u
+static inline uint32_t pd_fold_gain(uint32_t fold, uint32_t inc)
+{
+    uint32_t ext = fold * ((2048u - PD_FOLD_G0) << 4) / 127u;          /* Q12, <= 30160 */
+    if (inc > PD_FOLD_REF)
+        ext = ext * (PD_FOLD_REF >> 12) / (inc >> 12);              /* < 2^32 */
+    return PD_FOLD_G0 + (ext >> 4);
+}
 
-static __attribute__((noinline)) void cz_prepare(track_t *t, voice_t *v, uint32_t n, const vmod_t *m,
-    pd_t b[2][2], uint32_t inc[2], int32_t gain[2][2], int32_t gain_step[2])
+/* the loop: fg 0 (a constant: phase_render's loop, the code as it always was), fg > 0 the fold gain (phase_render_f's
+ * own copy: the loop without FOLD gains nothing) */
+static inline __attribute__((always_inline)) void phase_loop(track_t *t, voice_t *v, int32_t *out, uint32_t n,
+                                                            const vmod_t *m, uint32_t fg)
 {
     const int16_t *p = t->p;
-    cz_voice_t *c = cz_voice(t, v);
-    cz_env_def_t defs[2][3];
-    uint32_t w1 = (uint32_t)p[P_E0] & 7u, w2 = (uint32_t)p[P_E1];
-    int32_t det = p[P_E4];
-    int32_t depth[2], pitch[2];
-
-    cz_defs(t, defs);
-    /* Two resonant windows cannot be combined on the original front panel.
-     * Preserve arbitrary old stored choices safely using the first window. */
-    if (w1 >= 5u && w2 >= 6u) w2 = w1 + 1u;
-    for (uint32_t l = 0; l < 2u; l++) {
-        uint32_t wb = l ? P_FM2_ATK : P_FM1_ATK;
-        int32_t wl = p[P_E7] ? p[wb + 4u] : 127;
-        int32_t al = p[P_E7] && l ? p[P_FM3_LEVEL] : 127;
-        gain[l][0] = c->eg[l][2].level >> 9;
-        pitch[l] = cz_env_tick(&c->eg[l][0], &defs[l][0], v->gate) >> 9;
-        depth[l] = cz_env_tick(&c->eg[l][1], &defs[l][1], v->gate) >> 9;
-        gain[l][1] = cz_env_tick(&c->eg[l][2], &defs[l][2], v->gate) >> 9;
-        for (uint32_t k = 0; k < 2u; k++)
-            gain[l][k] = mulq15(gain[l][k], v->vel * 258) * al / 127;
-        gain_step[l] = (gain[l][1] - gain[l][0]) * 256 / (int32_t)n;
-        /* Pitch ENV is independent of DCW/DCA. The legacy ENV DEST pitch
-         * amount remains about +/-12 semitones; split mode adds its own depth. */
-        int32_t amount = p[P_ED_PIT];
-        if (p[P_E7]) amount = amount * p[P_FM4_LEVEL] / 127;
-        int32_t note = clamp(m->pitch16 + ((pitch[l] * amount * 3) >> 15) + (l ? det * 16 / 100 : 0), 0, 2047);
-        inc[l] = tuned_pitch_inc((uint32_t)note);
-        int32_t fine = m->fine + (l ? (det * 16 % 100) * 2367 / 16000 : 0);
-        inc[l] += (uint32_t)((int32_t)(inc[l] >> 12) * fine);
-        int32_t dep = (p[P_E2] << 8) + m->cutoff + mulq15(depth[l], p[P_E3] * 256);
-        dep += (depth[l] * p[P_ED_FLT]) >> 7;
-        dep += m->shape - (64 << 8) + ((depth[l] * p[P_ED_SHP]) >> 7);
-        uint32_t dcw = (uint32_t)clamp(dep, 0, 127 << 8) * 65535u / (127u << 8);
-        dcw = dcw * (uint32_t)wl / 127u;
-        pd_setup(&b[l][0], w1, dcw);
-        pd_setup(&b[l][1], w2 ? w2 - 1u : w1, dcw);
+    uint32_t w1 = (uint32_t)p[P_E0] & 7u, w2 = (uint32_t)p[P_E1], i;
+    int32_t depth = (p[P_E2] << 8) + m->cutoff + mulq15(m->envq15, p[P_E3] * 256);
+    uint32_t dcw, inc = m->inc, inc2;
+    int32_t det = p[P_E4], line2 = det != 0 || p[P_E5], ring = p[P_E5], sub = p[P_E6] * 200;
+    int32_t d16 = det * 16 / 100, rem = det * 16 - d16 * 100;   /* (cents_inc(), written out: the host
+                                                                 * compiler makes the loop slower with it) */
+    uint32_t ph0 = v->ph[0], ph1 = v->ph[1], ph2 = v->ph[2];
+    int32_t tg0 = v->s[0], tg1 = v->s[1];                    /* WAVE / WAVE2 toggles */
+    int32_t fx1 = fg ? v->s[4] : 0, fhp = fg ? v->s[5] : 0;  /* FOLD's DC blocker: the last fold, its output */    pd_t b1, b2;
+    depth = clamp(depth + (m->shape - (64 << 8)), 0, 127 << 8);
+    dcw = (uint32_t)depth * 65535u / (127u << 8);
+    dcw = (dcw * 56000u) >> 16;                              /* the classic range of the bend */
+    inc2 = pitch_inc(clamp(m->pitch16 + d16, 0, 2047));
+    inc2 += (uint32_t)((int32_t)(inc2 >> 12) * (rem * 2367 / 16000));
+    pd_setup(&b1, w1, dcw);
+    pd_setup(&b2, w2 ? w2 - 1u : w1, dcw);                   /* WAVE2 (every other cycle) */
+    for (i = 0; i < n; i++) {
+        uint32_t old = ph0;
+        int32_t s;
+        s = pd_wave(tg0 ? &b2 : &b1, ph0 >> 16);
+        ph0 += inc;
+        if (ph0 < old)
+            tg0 ^= 1;
+        if (line2) {
+            uint32_t old2 = ph1;
+            int32_t s2 = pd_wave(tg1 ? &b2 : &b1, ph1 >> 16);
+            ph1 += inc2;
+            if (ph1 < old2)
+                tg1 ^= 1;
+            s = ring ? mulq15(s, s2) : (s + s2) >> 1;     /* both within +-32767 */
+        }
+        if (fg) {   /* sin(pi/2 s gain): full scale x1 is a quarter turn; then a DC blocker (~14 Hz): folding a wave
+                     * that sits off centre (PLS, RING, the RESO windows) moves its DC around */
+            int32_t f = sine_i((uint32_t)(s * (int32_t)fg) << 7);
+            fhp += f - fx1 - (fhp >> 9);
+            fx1 = f;
+            s = fhp;
+        }
+        if (sub) {
+            ph2 += inc >> 1;
+            s += mulq15(osc_sine(ph2), sub);
+        }
+        if (fg)     /* (the blocker's step of a full-scale swing, +-65534, and SUB's 25400 on it: s x amp would wrap
+                     * 32 bits past 65538; FOLD 0 stays within 58167) */
+            s = clamp(s, -65535, 65535);
+        out[i] += voice_amp(s, m, i) << 1;
+    }
+    v->ph[0] = ph0;
+    v->ph[1] = ph1;
+    v->ph[2] = ph2;
+    v->s[0] = tg0;
+    v->s[1] = tg1;
+    if (fg) {
+        v->s[4] = fx1;
+        v->s[5] = fhp;
+        v->s[6] = (int32_t)fg;
     }
 }
-
-static inline __attribute__((always_inline)) int32_t cz_line_sample(
-    const pd_t b[2], uint32_t *ph, uint32_t inc, int32_t *tg, int32_t *dc, int32_t amp)
+static __attribute__((noinline)) void phase_render_f(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
-    uint32_t old = *ph;
-    int32_t raw = pd_wave(*tg ? &b[1] : &b[0], *ph >> 16);
-    *ph += inc;
-    if (*ph < old) *tg ^= 1;
-    /* AC-couple before DCA; preserve asymmetric peaks without clipping. */
-    *dc += raw - (*dc >> 10);
-    raw = (raw - (*dc >> 10)) >> 1;
-    return mulq15(raw, amp);
+    phase_loop(t, v, out, n, m, pd_fold_gain((uint32_t)t->p[P_E7], m->inc));
 }
 
-static int32_t phase_env_source(track_t *t, voice_t *v)
+/* FOLD going on or off (a knob, LFO / MOD, automation): FOLD 0 has no DC blocker (the sound as before 1.5.5) and the
+ * fold's output has none of the wave's DC, so the switch would step (up to half full scale on PLS / RING). That block
+ * is rendered both ways and crossfaded, unfolded -> folded or back (going off: at the last FOLD's gain); going on, the
+ * blocker starts afresh as on a note-on (its state from the last FOLD long gone). Once per switch: not the loop's cost */
+static int32_t pd_xa[CTL], pd_xb[CTL];
+static __attribute__((noinline)) void phase_xfade(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m,
+                                                  uint32_t on)
 {
-    (void)t;
-    return v->s[4];                                      /* cached unscaled DCA1, Q15 */
+    uint32_t ph0 = v->ph[0], ph1 = v->ph[1], ph2 = v->ph[2], i;
+    int32_t tg0 = v->s[0], tg1 = v->s[1], k;
+    if (n > CTL)
+        n = CTL;
+    for (i = 0; i < n; i++)
+        pd_xa[i] = pd_xb[i] = 0;
+    phase_loop(t, v, pd_xa, n, m, 0);                               /* unfolded; then from the same phases: */
+    v->ph[0] = ph0;
+    v->ph[1] = ph1;
+    v->ph[2] = ph2;
+    v->s[0] = tg0;
+    v->s[1] = tg1;
+    if (on) {
+        v->s[4] = v->s[5] = 0;
+        phase_render_f(t, v, pd_xb, n, m);
+    } else {
+        phase_loop(t, v, pd_xb, n, m, (uint32_t)v->s[6]);          /* (s[6]: set with the last folded block) */
+        v->s[4] = PD_UNFOLDED;
+    }
+    for (i = 0; i < n; i++) {
+        k = (int32_t)(on ? i + 1u : n - 1u - i);                    /* the folded one's share, of n */
+        out[i] += pd_xa[i] + (pd_xb[i] - pd_xa[i]) * k / (int32_t)n;
+    }
 }
 
 static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
-    const int16_t *p = t->p;
-    int line2 = p[P_E4] != 0 || p[P_E5], ring = p[P_E5];
-    uint32_t inc[2], ph[2] = {v->ph[0], v->ph[1]}, phsub = v->ph[2];
-    int32_t tg[2] = {v->s[0], v->s[1]}, dc[2] = {v->s[2], v->s[3]};
-    int32_t gain[2][2], gain_step[2];
-    pd_t b[2][2];
-    if (!n) return;
-    cz_prepare(t, v, n, m, b, inc, gain, gain_step);
-    v->s[4] = cz_voice(t, v)->eg[0][2].level >> 9;
-    for (uint32_t i = 0; i < n; i++) {
-        int32_t amp = gain[0][0] + ((gain_step[0] * (int32_t)i) >> 8);
-        int32_t sample = cz_line_sample(b[0], &ph[0], inc[0], &tg[0], &dc[0], amp);
-        if (line2) {
-            int32_t amp2 = gain[1][0] + ((gain_step[1] * (int32_t)i) >> 8);
-            int32_t s2 = cz_line_sample(b[1], &ph[1], inc[1], &tg[1], &dc[1], amp2);
-            sample = ring ? mulq15(sample, s2) : (sample + s2) >> 1;
-        }
-        if (p[P_E6]) {
-            phsub += inc[0] >> 1;
-            sample += mulq15(mulq15(osc_sine(phsub) >> 1, p[P_E6] * 200), amp);
-        }
-        out[i] += voice_amp(sample, m, i) * 4;
+    if (t->p[P_E7] > 0) {
+        if (v->s[4] == PD_UNFOLDED)
+            phase_xfade(t, v, out, n, m, 1);
+        else
+            phase_render_f(t, v, out, n, m);
+    } else if (v->s[4] != PD_UNFOLDED) {
+        phase_xfade(t, v, out, n, m, 0);
+    } else {
+        phase_loop(t, v, out, n, m, 0);
     }
-    v->ph[0] = ph[0]; v->ph[1] = ph[1]; v->ph[2] = phsub;
-    v->s[0] = tg[0]; v->s[1] = tg[1]; v->s[2] = dc[0]; v->s[3] = dc[1];
 }
 
 static const preset_t PHASE_PRESETS[] = {
+    /* name, {WAVE, WAVE2, DCW, ENV, DTN, LINE, SUB, FOLD}, {A D S R}, fenv, mono */
     {"BRASS", {0, 0, 30, 90, 0, 0, 0, 0}, {8, 70, 90, 40}, 0, 0},
     {"ORGAN", {3, 0, 40, 0, 0, 0, 0, 0}, {0, 127, 127, 30}, 0, 0},
     {"STRING", {0, 4, 50, 40, 12, 0, 0, 0}, {40, 90, 100, 70}, 0, 0},
@@ -342,11 +281,12 @@ static const engine_t ENG_PHASE = {
         {"DTN", F_INT, 0, 127, 0, 0, "ct"},
         {"LINE", F_ENUM, 0, 1, 0, N_PD_LINE, 0},
         {"SUB", F_PCT, 0, 127, 0, 0, 0},
-        {"EG", F_ENUM, 0, 1, 0, N_PD_ENV, 0},
+        {"FOLD", F_PCT, 0, 127, 0, 0, 0},       /* 1.5.5 (#104): 0 = off, the sound as before */
     },
     .presets = PHASE_PRESETS,
     .npresets = NELEM(PHASE_PRESETS),
-    .ownenv = 1, .done = phase_done, .keep = 0x0fu,
-    .note_on = phase_note_on, .render = phase_render,
+    .note_on = phase_note_on,
+    .render = phase_render,
+    .keep = 0x30,                /* FOLD's DC blocker (1.5.5): a retrigger does not restart it */
     .knob = {P_E2, P_E3, P_E4, P_REL},
 };

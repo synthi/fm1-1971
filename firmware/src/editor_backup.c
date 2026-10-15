@@ -93,7 +93,14 @@ static const uint8_t *ed_bk_object(uint32_t id, uint32_t *len)
         if(native_fm_valid(native_fm_bank(nb))){*len=sizeof(native_fm_t);return (const uint8_t *)native_fm_bank(nb);}
         return ED_BK_RAW;
     }
-    if(id>=9u && id<=16u){if(cz_bank_valid(native_cz_bank(id-9u))){*len=sizeof(cz_bank_t);return (const uint8_t *)native_cz_bank(id-9u);}cz_bank_t *b=cz_bank_load(id-9u);if(cz_bank_saved)*len=sizeof *b;return (const uint8_t *)b;}
+    if(id>=9u && id<=16u){
+#if MELODEE_CZ
+        if(cz_bank_valid(native_cz_bank(id-9u))){*len=sizeof(cz_bank_t);return (const uint8_t *)native_cz_bank(id-9u);}
+        cz_bank_t *b=cz_bank_load(id-9u);if(cz_bank_saved)*len=sizeof *b;return (const uint8_t *)b;
+#else
+        return 0;                                  /* 1971: CZ-1 removed, no backup entries 9..16 */
+#endif
+    }
     return 0;
 }
 static uint32_t ed_bk_capture(void)
@@ -178,12 +185,16 @@ static uint32_t ed_bk_commit_inner(void)
         if(native_save_bank(ENGI_FM6,b)==2){(*native_fm_bank(b))=old;return 4;}
         up_gen++;sync_reload=1;ui.force=1;return 0;
     } else if(ed_bk_id>=9u && ed_bk_id<=16u){
+#if MELODEE_CZ
         if(ed_bk_len && (ed_bk_len!=sizeof(cz_bank_t)||!cz_bank_valid((const cz_bank_t *)raw)))return 2;
         uint32_t b=ed_bk_id-9u;cz_bank_t old=(*native_cz_bank(b));
         if(ed_bk_len)memcpy(native_cz_bank(b),raw,sizeof(cz_bank_t));else {cz_bank_empty(native_cz_bank(b),b);native_cz_bank(b)->ver=2;}
         if(native_save_bank(ENGI_CZ,b)==2){(*native_cz_bank(b))=old;return 4;}
         cz_bank_import(b,(const uint8_t *)native_cz_bank(b),sizeof(cz_bank_t));
         up_gen++;sync_reload=1;ui.force=1;return 0;
+#else
+        return 1;                                  /* 1971: CZ-1 removed, not restorable */
+#endif
     } else if(ed_bk_id>=23u && ed_bk_id<=27u){
         uint32_t bank=ed_bk_id-23u;
         if(ed_bk_len && (ed_bk_len!=sizeof(p5_bank_t)||!p5_bank_valid((const p5_bank_t *)raw,bank)))return 2;
@@ -210,10 +221,12 @@ static uint32_t ed_bk_commit_inner(void)
 #if MELODEE_FLASH
         persist_saved = ed_bk_set.p; persist_pending = persist_repair = 0;
 #endif
+#if MELODEE_CZ
     } else if(ed_bk_id>=9u && ed_bk_id<=16u){
         cz_bank_import(ed_bk_id-9u,raw,ed_bk_len);
         if(ed_bk_len)memcpy(native_cz_bank(ed_bk_id-9u),raw,sizeof(cz_bank_t));else {cz_bank_empty(native_cz_bank(ed_bk_id-9u),ed_bk_id-9u);native_cz_bank(ed_bk_id-9u)->ver=2;}
         up_gen++;
+#endif
     } else {
         uint32_t b = ed_bk_id < 8u ? ed_bk_id - 6u : ed_bk_id - 15u;
         memset(up_cache_bank(b), 0, sizeof (*up_cache_bank(b)));
@@ -239,7 +252,11 @@ static uint32_t ed_bk_write(const uint8_t *a, uint32_t n)
             (a[1] >= 2u && a[1] <= 5u && len && !bank_full(len) && len != sizeof(project_store_t)) ||
             ((a[1] == 6u || a[1] == 7u || a[1] == 17u || a[1] == 18u) && len && len != sizeof(up_bank_t)) ||
             (a[1] == 8u && len) ||
+#if MELODEE_CZ
             (a[1]>=9u && a[1]<=16u && len && len!=sizeof(cz_bank_t)) ||
+#else
+            (a[1]>=9u && a[1]<=16u) ||             /* 1971: CZ-1 removed, never valid */
+#endif
             (a[1]>=23u && len && len!=sizeof(p5_bank_t)) ||
             (a[1]>=19u && a[1]<=22u && len && len!=sizeof(native_fm_t))) return 1;
         ed_bk_valid = 0; ed_bk_put = 1; ed_bk_id = a[1]; ed_bk_len = len; ed_bk_gen = ++proj_wire_gen;

@@ -61,7 +61,9 @@ static int st_prog(uint32_t off, const void *p, uint32_t n) { (void)off; (void)p
 static int st_erase(uint32_t off) { (void)off; return -1; }
 #include "../firmware/src/storage.c"
 #include "../firmware/src/editor.c"
+#if MELODEE_CZ
 #include "../firmware/src/cz_store.c"
+#endif
 
 static int check(const char *what, int ok)
 {
@@ -412,6 +414,7 @@ static int bank_protocol(void)
     bad += check("sample inventory advertises zero user slots", host_wire[5]==0);
     return bad;
 }
+#if MELODEE_CZ
 static int cz_native_protocol(void)
 {
     int bad=0; uint8_t raw[CZ_BYTES],a[322]; reset();cz_init();
@@ -515,6 +518,7 @@ static int native_protocol(void)
     bad+=check("wrong-engine store cannot create a native preset",host_wire[8]==1 && !native_used(ENGI_FM6,0));
     return bad;
 }
+#endif
 static int names_whole(void)
 {
     int bad = 0;
@@ -643,9 +647,11 @@ static int library_transfers(void)
     bad+=check("Prophet import keeps all twenty name bytes and opens P slots from another engine",sx_import.count==1&&library_engine()==ENGI_PROPHET&&user_limit()==128&&TSEL->eng_req!=ENGI_PROPHET&&!memcmp(sx_import.data,&p,sizeof p));
     ui.uslot=127;sysex_choose();host_wire_n=0;library_send(ENGI_PROPHET,127);host_drain();
     bad+=check("Prophet export reproduces the received frame and opaque bytes",!sx_import.count&&host_wire_n==n&&!memcmp(host_wire,frame,n));
+#if MELODEE_CZ
     reset();cz_patch_init(raw);memcpy(raw+128,"FULL CZ NAME XYZ!",16);native_put(ENGI_CZ,7,raw);host_wire_n=0;
     library_send(ENGI_CZ,7);host_drain();n=host_wire_n;memcpy(frame,host_wire,n);receive_library(frame,n);
     bad+=check("CZ USB export/import retains all sixteen name bytes",n==295&&sx_import.count==1&&library_engine()==ENGI_CZ&&!memcmp(sx_import.data,raw,CZ_BYTES));sysex_cancel();
+#endif
     reset();memcpy(raw,FM6_INIT,FM6_PACKED);memcpy(raw+118,"FULL DX7!!",10);native_put(ENGI_FM6,3,raw);native_put(ENGI_FM6,4,raw);
     bulk=(typeof(bulk)){.on=1,.engine=ENGI_FM6,.anchor=3,.end=4};bulk_send();host_drain();n=163;memcpy(frame,host_wire,n);
     bad+=check("FM6 bulk export sends two independently valid named voice frames",host_wire_n==326&&!memcmp(host_wire,host_wire+n,n)&&!sx_checksum(frame+6,156));
@@ -656,7 +662,11 @@ static int library_transfers(void)
 int main(void)
 {
     int bad = library_transfers() + native_motion_protocol() + prophet_protocol() + bank_protocol() + preferences() + framing() + uart_recovery() + steps() + song_protocol() + malformed_saves() + names_whole() +
-              native_protocol() + fm6_patches() + user_preset_roundtrip() + cz_native_protocol() + cz_dedicated_banks() + cz_casio_sysex() + concert_pitch() + scale_catalogue();
+              fm6_patches() + user_preset_roundtrip() + concert_pitch() + scale_catalogue()
+#if MELODEE_CZ
+              + native_protocol() + cz_native_protocol() + cz_dedicated_banks() + cz_casio_sysex()
+#endif
+              ;
     printf("%s\n", bad ? "EDITOR TEST FAILED" : "editor test passed");
     return bad != 0;
 }

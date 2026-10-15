@@ -47,7 +47,10 @@ static void motion_unguard(uint32_t f)
 static uint32_t motion_native_tag(const track_t *t)
 {
     uint32_t e = t->eng_req;
-    return e == ENGI_PROPHET ? MO_TAG_P5 : e == ENGI_CZ ? MO_TAG_CZ : e == ENGI_FM6 ? MO_TAG_FM6 : MO_TAG_NONE;
+#if MELODEE_CZ
+    if (e == ENGI_CZ) return MO_TAG_CZ;
+#endif
+    return e == ENGI_PROPHET ? MO_TAG_P5 : e == ENGI_FM6 ? MO_TAG_FM6 : MO_TAG_NONE;
 }
 /* byte i of the patch of the track's engine, 0: none motion moves (the Prophet's voice assignment, the CZ-1's line
  * select, FM6's TRANSPOSE and name: what changes the voices themselves) */
@@ -60,8 +63,10 @@ static uint8_t *motion_native_at(track_t *t, uint32_t i)
         return i < NELEM(P5_PANEL) && P5_PANEL[i].label && i != P5_UNISON && i != P5_UNISON_COUNT &&
                i != P5_UNISON_DETUNE && i != P5_RETRIGGER ? &p5_patch_of(t)->raw[i] : 0;
 #endif
+#if MELODEE_CZ
     case MO_TAG_CZ:
         return i && i < 128u ? &cz_patch[k].raw[i] : 0;
+#endif
     case MO_TAG_FM6:
         return i < FP_TRNSP ? &fm6_patch[k][i] : 0;
     default:
@@ -80,6 +85,7 @@ static int motion_native_ok(uint32_t id, int32_t value)    /* (a store's event: 
         return 0;
 #endif
     }
+#if MELODEE_CZ
     if (tag == MO_TAG_CZ) {
         if (!i || i >= 128u) return 0;
         if (i == 1u) return v <= 1u;
@@ -92,6 +98,7 @@ static int motion_native_ok(uint32_t id, int32_t value)    /* (a store's event: 
                 if (i == CZ_ENV_END[l][e]) return !(v & 8u);
         return 1;
     }
+#endif
     if (tag == MO_TAG_FM6) {
         static const uint8_t opmax[FP_OP] = {99,99,99,99,99,99,99,99,99,99,99,3,3,7,3,7,99,1,31,99,14};
         static const uint8_t globalmax[FP_TRNSP - FP_PR1] = {99,99,99,99,99,99,99,99,31,7,1,99,99,99,99,1,5,7};

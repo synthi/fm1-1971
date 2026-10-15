@@ -855,6 +855,7 @@ static void edit_param(uint32_t slot, int32_t steps)
         motion_unguard(f);return;
     }
     if(pg->scope==SC_P5STORE){p5_store_slot=(int16_t)v;return;}
+#if MELODEE_CZ
     if (pg->scope == SC_CZ1) {                           /* (a copy of the tone's value: written back there) */
         uint8_t raw[CZ_BYTES], old[MO_NATIVE_N];
         uint32_t tr = song.sel % NTRK, f = motion_guard();
@@ -867,6 +868,7 @@ static void edit_param(uint32_t slot, int32_t steps)
         motion_unguard(f);
         return;
     }
+#endif
     if (pg->scope == SC_FM6 || pg->scope == SC_FMOP) {   /* (a copy of FM6's value: written back there) */
         uint8_t old[MO_NATIVE_N];
         uint32_t f = motion_guard();
@@ -899,6 +901,7 @@ static void edit_param(uint32_t slot, int32_t steps)
         scale_share(TSEL);
 }
 
+#if MELODEE_CZ
 /* CZ TOOLS 1 > 2 / 2 > 1: line src's wave, window, key follow, level, velocity and envelopes over the other
  * line (Casio's 57-byte line block); MOD stays line 1's. Undoable as a sound load */
 static void cz_line_copy(track_t *t, uint32_t src)
@@ -926,6 +929,7 @@ static int cz_compare_swap(uint32_t tr)
     cz_compare = x;
     return 1;
 }
+#endif
 
 /* OCT+ on an action page: the picked action. A load stays picked (browse and load again); the others
  * are dropped once done. Flash writes only while stopped; over the user's data: the dialog */
@@ -941,6 +945,7 @@ static void act_do(void)
         else {load_begin(TSEL,UNDO_SOUND);panic_req|=1u<<song.sel;fm1_irq_off();p5_patch_init(p5_patch_of(TSEL));p5_track_accept(TSEL);fm1_irq_on();load_end(TSEL);ui_message("PROPHET INIT");}
         ui.act=0;return;
     }
+#if MELODEE_CZ
     if (cur_page()->graph == GR_CZTOOLS) {               /* CZ-1: NAME, copy a line over the other, COMPARE */
         uint32_t tr = song.sel % NTRK;
         if (chain_busy()) { ui_message("STOP TO EDIT"); return; }
@@ -956,6 +961,7 @@ static void act_do(void)
         ui.force = 1;
         return;
     }
+#endif
     if (cur_page()->graph == GR_SONG) {
         if (song.playing || seq_counting() || chain_busy()) transport_req = 2;
         else chain_play_ui();

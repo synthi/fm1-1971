@@ -2597,6 +2597,7 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
 /* CZ-1: every value of the native Casio tone on its own page (cz_edit.h), knob edits written into the
  * 144 bytes; an edit leaves the bytes it does not encode verbatim; SUS stays before END; the TOOLS
  * page copies a line, compares with the tone as loaded, names the tone */
+#if MELODEE_CZ
 static int test_cz1_pages(void)
 {
     static const char *const CYC[] = {"CZ TOOLS", "CZ LINE", "CZ DETUNE", "CZ VIBRATO",
@@ -2699,9 +2700,11 @@ static int test_cz1_pages(void)
     bad += check("CZ-1 TOOLS NAME opens the tone's 16-character name", ok);
     return bad;
 }
+#endif
 
 /* CZ-1's factory: Casio's 64 preset tones are PRESETS 1..64 (each loads its tone, BANK A..D, PTCH 1..16) and
  * the default BANK A..D (E..H empty); a saved bank wins, "none" in a restore brings the default back */
+#if MELODEE_CZ
 static int test_cz1_factory(void)
 {
     const engine_t *e = ENGINES[ENGI_CZ];
@@ -2751,6 +2754,7 @@ static int test_cz1_factory(void)
     bad += check("CZ-1 a restore without BANK A brings Casio's back", cz_bank_load(0)->used == 0xFFFFu && !cz_bank_saved);
     return bad;
 }
+#endif
 
 static int test_edit_cycle(void)
 {
@@ -4565,8 +4569,10 @@ int main(void)
     bad += test_layer();
     bad += test_name();
     bad += test_edit_cycle();
+#if MELODEE_CZ
     bad += test_cz1_pages();
     bad += test_cz1_factory();
+#endif
     bad += test_fm6_pages();
     bad += test_boot_template();
     bad += test_old_storage_ui();

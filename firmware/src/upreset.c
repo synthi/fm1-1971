@@ -87,12 +87,22 @@ static int up_save_bank(uint32_t b) {
 
 static up_rec_t *up_rec(uint32_t k) { return &up_cache_bank(k / UP_PER_BANK)->r[k % UP_PER_BANK]; }
 
-static int up_native_cz(const up_rec_t *r){return r->engine==ENGI_CZ && r->ver==UP_VER_CZ;}
+static int up_native_cz(const up_rec_t *r){return
+#if MELODEE_CZ
+    r->engine==ENGI_CZ && r->ver==UP_VER_CZ;
+#else
+    0;(void)r;
+#endif
+}
+#if MELODEE_CZ
 static int up_cz_raw(const up_rec_t *r,uint8_t *raw)
 {
     if(!up_native_cz(r))return 0;
     memcpy(raw,r->packed,CZ_BYTES);return cz_patch_valid(raw);
 }
+#else
+static int up_cz_raw(const up_rec_t *r,uint8_t *raw){(void)r;(void)raw;return 0;}
+#endif
 static int up_bank_shape(uint32_t len,uint32_t rsize){return len==sizeof(up_bank_t) && rsize==sizeof(up_rec_t);}
 static int up_drum_raw(const up_rec_t *r,drum_patch_t *p)
 {
@@ -305,7 +315,9 @@ static void up_values(const up_rec_t *r, int16_t *v)   /* mapped and clamped for
         v[i] = (int16_t)clamp(v[i], param_desc_of(up_native_cz(r)?ENGI_CZ:r->engine, i)->min, param_desc_of(up_native_cz(r)?ENGI_CZ:r->engine, i)->max);
 }
 
+#if MELODEE_CZ
 #include "cz_bank.c"
+#endif
 static void native_boot(void);
 static void native_cache_reset(void);
 
@@ -318,7 +330,9 @@ static void up_boot(void)                      /* persist_boot: the banks from f
     for (uint32_t b = 0; b < UP_SLOTS / UP_PER_BANK; b++) (void)up_cache_bank(b);
 #endif
     native_cache_reset();
+#if MELODEE_CZ
     cz_bank_boot();
+#endif
     native_boot();
 #ifdef MELODEE_FAVORITES
     for (uint32_t k = 0; k < UP_SLOTS; k++)
@@ -440,10 +454,12 @@ static int up_store(uint32_t k, const char *name)
     up_set_name(&r, k, name);
     for (i = 0; i < P_COUNT; i++)
         up_set_value(&r, i, (param_fx(i) || param_fx_send(i))?TP[i].def:motion_base_value(TSEL, i));
+#if MELODEE_CZ
     if (r.engine == ENGI_CZ && TSEL->p[P_E7] == CZ_NATIVE) {
         r.ver = UP_VER_CZ;
         memcpy(r.packed, cz_patch[song.sel % NTRK].raw, CZ_BYTES);
     }
+#endif
     up_pat_from(&r, TSEL->step);
     if (drum_track(TSEL)) {                             /* a DRUM track that strikes a lane: its grid */
         uint32_t any = 0;
@@ -502,9 +518,13 @@ static int up_load(uint32_t k)
             if (!param_kept(i))
                 t->p[i] = param_reserved(i) ? 0 : v[i];
         t->preset = 0;
+#if MELODEE_CZ
         if (up_native_cz(r))up_cz_raw(r,cz_patch[song.sel % NTRK].raw);
+#endif
         if(r->engine==ENGI_DRUM){memset(&drum_patch[song.sel],0,sizeof(drum_patch_t));if(r->ver==UP_VER_DRUM || r->ver==UP_VER_DRUM_GRID)up_drum_raw(r,&drum_patch[song.sel]);}
+#if MELODEE_CZ
         cz_track_accept(t);
+#endif
         fm1_irq_on();
         if (t->eng_req == ENGI_FM6) {                   /* FM6: its voice, native slot k (else INIT) */
             uint8_t v[FP_SIZE + 1u];

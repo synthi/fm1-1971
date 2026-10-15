@@ -252,8 +252,12 @@ static int proj_pack(project_store_t *out, const project_t *q)
     for (t = 0; t < NTRK; t++) b[pos++] = proj_p5_origin_value(q,t);
     memcpy(b + PROJ_FM6_OFF, q->fm6, sizeof q->fm6);
     for (t = 0; t < NTRK; t++) {
+#if MELODEE_CZ
         if (!cz_patch_valid(q->cz[t].raw)) return 0;
         memcpy(b + PROJ_CZ_OFF + t*CZ_BYTES, q->cz[t].raw, CZ_BYTES);
+#else
+        memset(b + PROJ_CZ_OFF + t*CZ_BYTES, 0, CZ_BYTES);
+#endif
     }
     for (i = 0; i < RECORD_MAX; i++) if (!recording_valid(&q->recording[i])) return 0;
     if(!proj_record_pack(b,q))return 0;
@@ -345,8 +349,12 @@ static int proj_unpack(project_t *q, const uint8_t *b)
         for (i = 0; i < FM6_PACKED; i++)
             q->fm6[t][i] = b[end + t * FM6_PACKED + i] & 0x7Fu;
     for (t = 0; t < NTRK; t++) {
+#if MELODEE_CZ
         memcpy(q->cz[t].raw, b + PROJ_CZ_OFF + t * CZ_BYTES, CZ_BYTES);
         if (!cz_patch_valid(q->cz[t].raw)) return 0;
+#else
+        memset(q->cz[t].raw, 0, CZ_BYTES);
+#endif
         memcpy(&q->p5[t], b + PROJ_P5_OFF + t * sizeof(p5_patch_t), sizeof(p5_patch_t));
         if (!p5_patch_valid(&q->p5[t])) return 0;
         if (!drum_patch_unpack(&q->drum[t], b + PROJ_DRUM_OFF + t * DRUM_WIRE_BYTES)) return 0;
@@ -507,9 +515,13 @@ static void project_capture(project_t *p)
             *proj_p5_origin(p,i) = (uint8_t)(user_of(&trk[i])+1u);
         p->pattern[i] = trk[i].pattern;
         memcpy(p->t[i].step, trk[i].step, sizeof trk[i].step);
+#if MELODEE_CZ
         p->cz[i] = cz_patch[i];
+#endif
         p->p5[i] = *p5_patch_of(&trk[i]);
+#if MELODEE_CZ
         motion_native_snapshot(&trk[i], p->cz[i].raw, MO_TAG_CZ, CZ_BYTES);
+#endif
         motion_native_snapshot(&trk[i], p->p5[i].raw, MO_TAG_P5, sizeof p->p5[i].raw);
         memcpy(native, fm6_patch[i], sizeof native);
         motion_native_snapshot(&trk[i], native, MO_TAG_FM6, sizeof native);
@@ -723,8 +735,10 @@ static int project_restore_runtime(const project_t *input)
                     }
                 }
             }
+#if MELODEE_CZ
             cz_patch[k] = p->cz[k];
             cz_track_accept(t);
+#endif
             fm6_set_patch(k, v);
             memcpy(fm6_fn[k], p->fm6_fn_ok && fm6_fn_ok(p->fm6_fn[k]) ? p->fm6_fn[k] : FM6_FNDEF, FM6_NFN);
         }
@@ -843,7 +857,11 @@ static int tmpl_blob_valid(const uint8_t *b,uint32_t len)
     for(uint32_t k=0;k<NTRK;k++){
         if(b[2u*PROJ_GLOBALS+2u+k*(2u+2u*np)]>=NENGINES)return 0;
         p5_patch_t p;memcpy(&p,b+__builtin_offsetof(tmpl_t,p5)-delta+k*sizeof p,sizeof p);
+#if MELODEE_CZ
         if(!cz_patch_valid(b+__builtin_offsetof(tmpl_t,cz)-delta+k*sizeof(cz_patch_t)) || !p5_patch_valid(&p) ||
+#else
+        if(!p5_patch_valid(&p) ||
+#endif
             !drum_patch_valid((const drum_patch_t *)(b+__builtin_offsetof(tmpl_t,drum)-delta+k*sizeof(drum_patch_t))))return 0;
     }
     if(np>=117u){uint32_t off=__builtin_offsetof(tmpl_t,master)-delta;
@@ -920,7 +938,9 @@ static void template_save(void)
         tmpl.t[k].preset = trk[k].preset;
         for (i = 0; i < P_COUNT; i++)
             tmpl.t[k].p[i] = motion_base_value(&trk[k], i);
+#if MELODEE_CZ
         tmpl.cz[k] = cz_patch[k];
+#endif
         tmpl.p5[k] = *p5_patch_of(&trk[k]);
         tmpl.drum[k]=drum_patch[k];
         fm6_pack(fm6_patch[k], tmpl.fm6[k]);

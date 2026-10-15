@@ -105,7 +105,9 @@
 #endif
 #include "upreset.c"             /* user presets (RAM mirror; flash with MELODEE_FLASH) */
 #include "project.c"
+#if MELODEE_CZ
 #include "cz_store.c"
+#endif
 #include "fm6_store.c"            /* FM6: DX7 SysEx, the STORE shortcut to user presets */
 #if MELODEE_OTA
 #define OTA_SCRATCH proj_wire_borrow()   /* the update entry stages in the project staging RAM */

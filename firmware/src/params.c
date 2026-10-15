@@ -278,8 +278,10 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
         else if(type>=6u && type<=8u){fx_desc.label=type==6u?"TIME":"SIZE";fx_desc.fmt=F_PCT;}
         return &fx_desc;
     }
+#if MELODEE_CZ
     if (t->eng_req == 2u && id >= P_FM1_ATK && id <= P_FM4_LEVEL)
         return &CZ_ED[id - P_FM1_ATK];
+#endif
     if (id == P_MPCDEG) {                             /* a degree of the track's scale */
         static param_desc_t degree;
         degree = TP[P_MPCDEG];
@@ -298,8 +300,10 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
  * only; range and default are the same): what the editor protocol, user presets and projects use */
 static const param_desc_t *param_desc_of(uint32_t e, uint32_t id)
 {
+#if MELODEE_CZ
     if (e == 2u && id >= P_FM1_ATK && id <= P_FM4_LEVEL)
         return &CZ_ED[id - P_FM1_ATK];
+#endif
     return id >= P_E0 ? &ENGINES[e]->edit[id - P_E0] : &TP[id];
 }
 
@@ -540,6 +544,7 @@ static const page_t PAGES[] = {
     {"FM WH/FT", FAM_EDIT, SC_FM6, GR_NONE, {FP_SIZE + FN_MWR, FP_SIZE + FN_MWA, FP_SIZE + FN_FCR, FP_SIZE + FN_FCA}},
     {"FM BR/AT", FAM_EDIT, SC_FM6, GR_NONE, {FP_SIZE + FN_BCR, FP_SIZE + FN_BCA, FP_SIZE + FN_ATR, FP_SIZE + FN_ATA}},
     /* CZ-1 only (page_visible): the native tone, every panel value (cz_edit.h) */
+#if MELODEE_CZ
     {"CZ TOOLS", FAM_EDIT, SC_CZ1, GR_CZTOOLS, {0, 1, 2, 3}},   /* NAME 1>2 2>1 COMP (ui_input.c act_do) */
     {"CZ LINE", FAM_EDIT, SC_CZ1, GR_NONE, {LCZ_LINE, LCZ_MOD, LCZ_OCT, 0xFF}},
     {"CZ DETUNE", FAM_EDIT, SC_CZ1, GR_NONE, {LCZ_SIGN, LCZ_DOCT, LCZ_NOTE, LCZ_FINE}},
@@ -551,6 +556,7 @@ static const page_t PAGES[] = {
     {"CZ2 WAVE", FAM_EDIT, SC_CZ1, GR_NONE, {LCZ_LBASE(1) + LCZ_W1, LCZ_LBASE(1) + LCZ_W2, LCZ_LBASE(1) + LCZ_KW, LCZ_LBASE(1) + LCZ_KA}},
     {"CZ2 TOUCH", FAM_EDIT, SC_CZ1, GR_NONE, {LCZ_LBASE(1) + LCZ_LEVEL, LCZ_LBASE(1) + LCZ_VP, LCZ_LBASE(1) + LCZ_VW, LCZ_LBASE(1) + LCZ_VA}},
     CZ_ENV_PAGES("C2 PIT", 1, 0), CZ_ENV_PAGES("C2 WAV", 1, 1), CZ_ENV_PAGES("C2 AMP", 1, 2),
+#endif
     /* PHASE: the retired FM4 storage fields hold split CZ envelopes. */
     {"DCW1 ENV", FAM_EDIT, SC_CZ, GR_NONE, {P_FM1_ATK, P_FM1_DEC, P_FM1_SUS, P_FM1_REL}},
     {"DCW2 ENV", FAM_EDIT, SC_CZ, GR_NONE, {P_FM2_ATK, P_FM2_DEC, P_FM2_SUS, P_FM2_REL}},
@@ -658,6 +664,7 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         }
         return pg->scope==SC_P5STORE?&P5_STORE[slot&3u]:id==P5_BEND?&P5_BEND_DISPLAY:&P5_PANEL[id];
     }
+#if MELODEE_CZ
     if (pg->scope == SC_CZ1) {                           /* a copy of the tone's panel value (cz_ed_put writes it) */
         *valp = 0;
         if (id == 0xFFu || TSEL->eng_req != ENGI_CZ)
@@ -669,6 +676,7 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         }
         return cz_ed_desc(song.sel % NTRK, id, slot, valp);
     }
+#endif
     if (pg->scope == SC_FM6 || pg->scope == SC_FMOP)
         return fm6_page_desc(pg, slot, valp);
     if(pg->scope==SC_DRUM || pg->scope==SC_DRUMHIT){*valp=0;return 0;}

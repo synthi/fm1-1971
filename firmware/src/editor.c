@@ -280,7 +280,9 @@ static int ed_flash_stop(void)
 #include "editor_preferences.c"
 #include "editor_backup.c"
 #include "editor_fm6.c"
+#if MELODEE_CZ
 #include "editor_cz.c"
+#endif
 #include "editor_native.c"
 #include "editor_prophet.c"
 
