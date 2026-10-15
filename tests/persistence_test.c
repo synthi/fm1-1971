@@ -118,9 +118,9 @@ static int test_boot_maintenance_writes(void)
     int bad = 0;
     reset(); boot_trace = 1;
     persist_boot();
-    bad += check("first boot flushes warning before settings and 12 bank erases",
-                 erases == 13u && !boot_trace_bad && boot_syncs >= 17u &&
-                 !boot_work.state && boot_work.total == 12u && boot_work.done == 12u);
+    bad += check("first boot flushes warning before settings and 4 bank erases",
+                 erases == 5u && !boot_trace_bad && boot_syncs >= 54u &&
+                 !boot_work.state && boot_work.total == 4u && boot_work.done == 4u);
     uint32_t before = erases, flushed = boot_syncs;
     persist_boot();
     bad += check("completed first boot needs no more bank writes or progress screen",
@@ -134,9 +134,9 @@ static int test_boot_maintenance_writes(void)
                  native_fm_valid(native_fm_bank(0)) && native_fm_valid(native_fm_bank(2)));
     fail_after = -1; before = erases; boot_syncs = 0;
     persist_boot();
-    bad += check("restart retries only the nine unfinished banks",
-                 !boot_work.state && boot_work.total == 9u && boot_work.done == 9u &&
-                 erases == before + 9u && !boot_trace_bad && boot_syncs >= 11u);
+    bad += check("restart retries only the one unfinished bank",
+                 !boot_work.state && boot_work.total == 1u && boot_work.done == 1u &&
+                 erases == before + 1u && !boot_trace_bad && boot_syncs >= 18u);
     reset();
     return bad;
 }

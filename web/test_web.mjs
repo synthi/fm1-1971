@@ -107,50 +107,6 @@ async function prophetBackupTests(){
 }
 await prophetBackupTests();
 
-async function czTests() {
-  const b=E.CZ.init();E.CZ.setName(b,"EIGHT POINT TEST");b[20]=0x37;b[16]=0x42;b[17]=17;b[18]=5;b[19]=83;
-  for(let k=0;k<8;k++){b[21+2*k]=(k*15)&127;b[22+2*k+1-1]=(k*17)&127;}b[28]|=128;
-  // Include uncommon native wave pairs and untouched raw rate encodings.
-  b[14]=0xE0;b[15]=0xDE;
-  const file=E.CZ.sysex(b,3);const r=E.CZ.read(file);
-  ok(eq(r.voices[0].raw,b),"CZ: native 144-byte .syx import/export preserves every byte");
-  const dump=[240,68,0,0,115,48,...E.CZ.nibbles(b),247];
-  const bank=E.CZ.read([...dump,...file]);ok(bank.voices.length===2 && eq(bank.voices[1].raw,b),"CZ: dump and receive frames in a multi-tone bank");
-  const old=[240,68,0,0,112,32,96,...E.CZ.nibbles(b).slice(0,256),247];
-  ok(E.CZ.read(old,"legacy.syx").voices[0].raw.length===144,"CZ: compatible 128-byte tones gain native defaults");
-  let invalid=0;for(const f of [file.slice(0,-1),[...file.slice(0,8),16,...file.slice(9)],[240,67,0,0,112,48,...E.CZ.nibbles(b),247]])try{E.CZ.read(f);}catch{invalid++;}
-  ok(invalid===3,"CZ: malformed, foreign and truncated files are rejected");
-  const edited=b.slice();E.CZ.editPoint(edited,0,2,4,"rate",53);
-  ok(edited.every((x,i)=>i===29||x===b[i]),"CZ: one edited rate leaves every other native byte intact");
-  const m=E.makeMockDevice();const inp=[...m.access.inputs.values()][0],out=[...m.access.outputs.values()][0];const link=new E.Link(d=>out.send(d),{timeout:500});inp.onmidimessage=e=>link.receive(e.data);const rq=(r,o)=>link.request(r,o);
-  const info=E.parse[E.CMD.INFO](await rq(E.req.info()));ok(info.cz,"CZ: firmware capability is advertised");
-  await rq(E.req.track(2));const pt=E.czLibraryPatch({name:E.CZ.name(b),raw:b},info);pt.p[34]=77;pt.p[13]=12;
-  await E.auditionPatch(rq,info,pt);const live=E.parse[E.CMD.CZ_GET](await rq(E.req.czGet(0,2)));
-  ok(eq(live.raw,b),"CZ: audition targets selected track 3 with complete native data");
-  const sound=E.parse[E.CMD.DUMP](await rq(E.req.dump()),info);ok(sound.engine===15 && info.engines[2]==="-" && info.engines[15]==="CZ-1" && sound.p[34]===0 && sound.p[13]===12,"CZ: native library audition ignores removed effects and restores modulation after raw tone upload");
-  const captured=await E.capturePatch(rq,info,"Captured");ok(eq(captured.patch.cz,b),"CZ: capture reads the selected track's native tone");
-  ok(await E.bank.put(rq,8,pt)===0,"CZ: upload to user preset bank");const saved=await E.bank.get(rq,info,8);ok(eq(saved.cz,b),"CZ: user preset bank returns all 144 tone bytes");
-  const ctx={keys:Array.from({length:92},(_,i)=>`P${i}`),pe0:84,engines:info.engines};const lib=E.libraryFile("library",[captured.patch],ctx);const imported=E.readLibraryFile(lib,ctx);ok(eq(imported.patches[0].cz,b),"CZ: library JSON round trip retains native bytes");
-  let calls=0;try{await E.auditionPatch(async()=>{calls++;}, {...info,cz:false},pt);}catch{}ok(!calls,"CZ: unsupported firmware is rejected before changing sound");
-  ok(info.czBanks===0 && info.native?.[15]===128 && info.native?.[12]===64,"CZ: independent native preset collections advertised");
-  const tones=Array.from({length:16},(_,i)=>{const t=b.slice();E.CZ.setName(t,`TONE ${i+1}`);return t;});
-  await E.czBankUpload(rq,0,{name:"FIRST BANK",tones});await E.czBankUpload(rq,7,{name:"LAST BANK",tones:[b]});
-  const first=await E.czBankRead(rq,0),last=await E.czBankRead(rq,7);
-  ok(first.name==="FIRST BANK" && eq(first.tones[15],tones[15]) && eq(last.tones[0],b) && !last.tones[1],"CZ: independent named banks retain all native bytes and empty slots");
-  const before=Array.from(m.state.czbanks[0]);let writes=0;
-  try{await E.czBankUpload(async(...args)=>{writes++;return rq(...args);},0,{name:"BAD",tones:[b.slice(0,128)]});}catch{}
-  ok(!writes && eq(before,Array.from(m.state.czbanks[0])),"CZ: invalid bank refused before any write");
-  let chunks=0;try{await E.czBankUpload(async(r,o)=>{if(r[1][0]===1 && ++chunks===3)throw Error("Disconnected");return rq(r,o);},0,{name:"CUT SHORT",tones:[b]});}catch{}
-  ok(eq(before,Array.from(m.state.czbanks[0])),"CZ: interrupted bank upload keeps previously committed bank");
-  const exported=first.tones.flatMap(t=>Array.from(E.CZ.sysex(t)));const again=E.CZ.read(exported);
-  ok(again.voices.length===16 && eq(again.voices[15].raw,tones[15]),"CZ: dedicated bank exports a complete reusable .syx bank");
-  const legacy=Array(165).fill(0);legacy[2]=1;for(let i=149;i<165;i++)legacy[i]=32;legacy[149]=77;
-  for(let l=0;l<2;l++){const base=23+l*8;legacy[base+4]=15;legacy[base+2]=5;for(let e=0;e<3;e++){const b=39+(l*3+e)*18;for(let k=0;k<8;k++)legacy[b+k]=99;legacy[b+8]=e?99:0;legacy[b+17]=1;}}
-  const migrated=E.readLibraryFile({format:"felucca-library",version:1,pE0:84,engines:["CZ-1"],patches:[{name:"OLD CZ",engine:0,engineName:"CZ-1",params:Array(92).fill(0),cz1:legacy}]},ctx).patches[0];
-  ok(migrated.engine===15 && migrated.cz[128]===77 && migrated.cz[18]===5 && migrated.cz[19]===83 && migrated.p[91]===2,"CZ: earlier next librarian tones migrate to native bank-ready patches");
-  link.close();m.close?.();
-}
-await czTests();
 
 async function nativeTests() {
   const m=E.makeMockDevice(), inp=[...m.access.inputs.values()][0], out=[...m.access.outputs.values()][0];
@@ -166,7 +122,7 @@ async function nativeTests() {
   await E.nativeBank.load(rq,15,127,0);const sound=E.parse[E.CMD.DUMP](await rq(E.req.dump()),info);
   ok(sound.engine===15 && sound.p[34]===0 && sound.p[13]===12 && JSON.stringify(m.state.tracks[0].step)===before,"native: loading changes the tone and keeps modulation and steps without effects");
   await rq(E.req.set(0,info.pe0,3));await E.nativeBank.load(rq,15,127,0);
-  ok(E.parse[E.CMD.DUMP](await rq(E.req.dump()),info).p[info.pe0]===3,"native: scrolling within CZ keeps track macros");
+  ok(E.parse[E.CMD.DUMP](await rq(E.req.dump()),info).p[info.pe0]===0,"native: loading a retired slot's native tone leaves track macros at the slot default");
   const status=E.parse[E.CMD.NATIVE](await rq(E.req.native(15,7,0)));ok(status.user===128,"native: Z128 current slot survives 7-bit protocol encoding");
   await E.nativeBank.store(rq,15,126,0,"SECOND CZ");const stored=await E.nativeBank.get(rq,info,15,126);
   ok(stored.name==="SECOND CZ" && eq(stored.cz.slice(0,128),cz.slice(0,128)),"native: saving the playing tone and rename preserve the complete sound");
@@ -190,7 +146,7 @@ async function editorMock() {
   const rq = async (r, o) => link.request(r, o);
   const info = E.parse[E.CMD.INFO](await rq(E.req.info()));
   ok(info.nengines === 20 && info.engines[14] === "-" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "-"
- && info.engines[2] === "-" && info.engines[5] === "-" && info.engines[6] === "-" && info.engines[7] === "-" && info.engines[8] === "-" && info.engines[9] === "-" && info.engines[10] === "DRUM" && info.engines[11] === "-" && info.pcount === 119 && info.pe0 === 111 && info.engines[4] === "-",
+ && info.engines[2] === "PHASE" && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "WHEEL" && info.engines[8] === "-" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "NOISE" && info.pcount === 119 && info.pe0 === 111 && info.engines[4] === "-" && info.engines[15] === "-",
     "editor: INFO");
   let descs = 0;
   for (let i = 0; i < info.pcount; i++) if (E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))).label) descs++;
@@ -283,7 +239,7 @@ async function editorMock() {
   ok(!prefs.favorites[info.namespace.general][31] && !E.devicePresetRows(info, names, prefs).some((r) => r.user), "editor: erased slot disappears and loses star");
   {   /* the lists in the device's order (engines.c ENGINE_ORDER): FM6 second, DRUM last, "-" never; the numbers stay */
     const shown = E.engineOrder(info.engines).map((i) => info.engines[i]);
-    ok(shown.join() === "PROPHET,FM6,CZ-1,SID,DRUM" &&
+    ok(shown.join() === "PROPHET,FM6,PHASE,SID,VOICE,WHEEL,PHYS,NOISE,DRUM" &&
        E.engineOrder(info.engines)[1] === 12 && E.engineOrder(info.engines).at(-1) === 10,
        "editor: engines listed FM6 second, DRUM last (indices kept)");
     ok(E.engineOrder(["ANALOG", "X", "-", "DRUM", "FM6"]).join() === "0,4,3,1", "editor: an unknown engine follows the known ones");
@@ -360,17 +316,19 @@ async function editorMock() {
 
 async function editorSamplePresets() {
  const {rq,done}=attachMock();const info=E.parse[E.CMD.INFO](await rq(E.req.info()));
- ok([4,6,7,8,9,13,14].every(i=>info.engines[i]==="-" && !E.engineOrder(info.engines).includes(i)),"editor: SAMPLE, GRAIN and SLICE removed; other engine IDs kept");done();
+ ok([4,6,8,13,14,15].every(i=>info.engines[i]==="-" && !E.engineOrder(info.engines).includes(i)),"editor: SAMPLE, TRIO, SLICE, OBXF and CZ-1 removed; other engine IDs kept");done();
 }
 
 /* the mock's tables == the firmware's (build/host/desc.json from tests/descdump.c, written by run_tests.sh):
    parameter descriptors, engines (titles, EDIT, presets), power-on sounds */
 function mockTables() {
   {
-    const m0 = E.makeMockDevice({ auto: false }), ph = m0.tables.ENG[9], dr = m0.tables.ENG[10];
+    const m0 = E.makeMockDevice({ auto: false }), ph = m0.tables.ENG[2], dr = m0.tables.ENG[10];
     m0.stop();
-    ok([2,5,6,7,9,11].every((i) => m0.tables.ENG[i].name === "-" && !m0.tables.ENG[i].presets.length),
-       "editor: PHASE, VOICE, TRIO, WHEEL, PHYS and NOISE retired with their original IDs reserved");
+    ok([6,13,14,15].every((i) => m0.tables.ENG[i].name === "-" && !m0.tables.ENG[i].presets.length),
+       "editor: TRIO, SLICE, OBXF and CZ-1 retired with their original IDs reserved");
+    ok([2,5,7,9,10,11,12,19].every((i) => m0.tables.ENG[i].name !== "-" && m0.tables.ENG[i].presets.length),
+       "editor: PHASE, VOICE, WHEEL, PHYS, DRUM, NOISE, FM6 and PROPHET alive with factory presets");
     ok(dr.name === "DRUM" && dr.edit.map((d) => d.label).join() === "KIT,TUNE,TONE,DECY,SNAP,ACC,KICK,DRV" &&
        dr.edit[0].names.join() === "808,909" && dr.edit[0].min === 4 && dr.edit[0].max === 5 && dr.presets.length === 2 && dr.presets[0].name === "808 KIT",
        "editor: DRUM engine 10 (KIT TUNE TONE DECY SNAP ACC KICK DRV, KIT 808), 808 and 909 kits");
@@ -408,7 +366,7 @@ function mockTables() {
   cmp("FM6 patches (init, factory, bank size)", T.FM6, fw.FM6);
   cmp("DRUM grid: the lanes' GM notes", [...E.LANE_NOTE], fw.LANE_NOTE);
   cmp("DRUM grid: the lane of GM 35..81", E.LANE_OF, fw.LANE_OF);
-  diffs.slice(0, 20).forEach((d) => console.log("  " + d));
+  diffs.forEach((d) => console.log("  " + d));
   ok(!diffs.length, `editor: mock tables == firmware (${diffs.length} differences)`);
   /* #31: percent values as the firmware formats them (param_format), SWG 0..100 shows its value */
   const pd = (fw.PCT || []).filter(([sc, i, v, , txt]) => E.fmtValue((sc ? T.GP : T.TP)[i], v)[0] !== txt);   /* [scope, index, value, max, text] */

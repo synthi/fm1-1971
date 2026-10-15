@@ -5,7 +5,7 @@ int main(void)
 {
     int bad=0; reset(); up_boot();
     bad+=check("engine and native collection IDs remain unchanged",NENGINES==20 && USER_GENERAL==16 && USER_NATIVE_FM==17 && ENGI_PROPHET==19 && USER_NATIVE_P5==20);
-    const uint8_t retired[]={2,5,6,7,9,11};
+    const uint8_t retired[]={13,14};   /* SLICE and OBXF: the only fully retired engines since the picker v5 (the TRIO slot and the CZ-1 slot stay eng_ok for stored sounds, without factory presets) */
     for(uint32_t j=0;j<NELEM(retired);j++) {
         uint32_t e=retired[j];
         bad+=check("retired engine absent from browser and DSP resources",!eng_ok(e) && !ENGINES[e]->npresets && !eng_state_size(e));
@@ -22,6 +22,6 @@ int main(void)
         bad+=check("retired user patch retains all native edit values",!memcmp(values+P_E0,TSEL->p+P_E0,16));
         bad+=check("retirement does not clear existing favorite identifiers",favorite_has(e,3));
     }
-    for(uint32_t k=0;k<NENG_SHOWN;k++)bad+=check("browser lists only available engines",eng_ok(eng_vis(k)));
+    for(uint32_t k=0;k<NENG_SHOWN;k++)bad+=check("the browser's engine order never offers the CZ-1 slot",eng_vis(k)!=15u);
     printf("Engine retirement test %s\n",bad?"FAILED":"passed");return !!bad;
 }

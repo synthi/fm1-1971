@@ -164,7 +164,7 @@ static const uint8_t ENGINE_ORDER[NENG_SHOWN] = {
     12,                          /* FM6 */
 #if MELODEE_LEGACY_EXTRAS
     2, 3, 5,                     /* PHASE SID VOICE */
-    6, 7, 9,
+    7, 9,                        /* (TRIO 6: 1971, out of the picker) */
     11,                          /* NOISE */
 #else
     3,                           /* SID */
@@ -176,13 +176,15 @@ static const uint8_t ENGINE_ORDER[NENG_SHOWN] = {
 };
 
 /* Retired synth records (ANALOG and DIGITAL since 2.0 too) retain their stored identity and render silence.
- * Never relabel retired records FM6. */
+ * Never relabel retired records FM6. (1971: the build-static retirements TRIO 6, SLICE 13, OBXF 14 and the
+ * removed CZ-1 15 keep their data the same way: old projects and stored patches stay identified.) */
 static int eng_extra_retired(uint32_t e)
 {
 #if !MELODEE_PROPHET_PROTOTYPE
     if (e == ENGI_ANALOG) return 1;
 #endif
-    return e == ENGI_DIGITAL || (!MELODEE_LEGACY_EXTRAS && (e == 2u || e == 5u || e == 6u || e == 7u || e == 9u || e == 11u));
+    return e == ENGI_DIGITAL || e == 6u || e == 13u || e == 14u || e == 15u ||
+           (!MELODEE_LEGACY_EXTRAS && (e == 2u || e == 5u || e == 7u || e == 9u || e == 11u));
 }
 /* the engines one can pick, in ENGINE_ORDER: eng_ok(e), the n-th of them
  * eng_vis(n), e's place among them eng_rank(e), the next / previous one eng_step(e, dir) (wraps) */

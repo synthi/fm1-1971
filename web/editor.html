@@ -1951,8 +1951,7 @@ function makeMockDevice(opt = {}) {
     ...Array.from({length:8},()=>D("",F.INT,0,127,0)),
     E("MIDI", ["USB", "TRS"], 0), E("DRUM", ["OFF", ...Array.from({ length: 16 }, (_, i) => String(i + 1))], 10), E("ROUT", ["CH1-4", "SEL"], 0), D("CPU", F.INT, 0, 0, 0),
     D("SLOT", F.INT, 1, 5, 1), E("BOOT", ["OFF", "A", "B", "C", "D"], 0), E("LOAD", NGO, 0), E("SAVE", NGO, 0),
-    E("ENG", ["-", "-", "-", "SID", "-", "-", "-", "-",
-      "-", "-", "DRUM", "-", "FM6", "-", "-", "CZ-1", "-", "-", "-", "PROPHET"], 0), D("A4", F.INT, 400, 480, 440, null, "Hz"),
+    E("ENG", ["-", "-", "PHASE", "SID", "-", "VOICE", "-", "WHEEL", "-", "PHYS", "DRUM", "NOISE", "FM6", "-", "-", "-", "-", "-", "-", "PROPHET"], 0), D("A4", F.INT, 400, 480, 440, null, "Hz"),
     E("CLRSQ", NGO, 0), E("INIT", NGO, 0),
     ...Array.from({length:3},()=>D("",F.INT,0,127,0)),
   ];
@@ -1960,74 +1959,109 @@ function makeMockDevice(opt = {}) {
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
   const P = (name, e, env = [10, 70, 90, 60], mono = 0) => ({ name, e, env, mono });
   const ENG = [
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},   /* 0: retired ANALOG; stored ID reserved */
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},   /* 1: retired DIGITAL; stored ID reserved (the editor converts its sounds: FM4 above) */
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},   /* 2: retired PHASE; stored ID reserved */
-    { name: "SID", titles: ["CHIP", "FILTER"], edit: [E("MODEL", ["6581", "8580"], 0), E("WAVE", ["TRI", "SAW", "PULSE", "NOISE", "TRI+SAW", "TRI+PLS", "SAW+PLS", "T+S+P"], 1),
-        E("STACK", ["ONE", "DETUNE", "OCT", "FIFTH", "MAJOR", "SYNC", "RING", "SUB"], 0), D("PW", F.PCT, 0, 127, 64), D("CUT", F.PCT, 0, 127, 127),
-        D("RES", F.INT, 0, 15, 0), E("MODE", ["LP", "BP", "HP", "NOTCH", "LP+BP", "BP+HP", "ALL", "OFF"], 0), D("DRIVE", F.PCT, 0, 127, 0)],
-      presets: [
-        P("INIT SID", [0,1,0,64,127,0,0,0], [0,36,127,36], 0), P("BREADBOX", [0,2,1,40,60,6,0,30], [0,78,100,57], 0),
-        P("RUBBER BASS", [0,2,7,30,36,10,0,40], [0,63,60,36], 1), P("ARP BASS", [0,2,0,48,34,12,0,30], [0,57,40,0], 1),
-        P("SUB PULSE", [1,2,7,64,14,4,0,0], [0,69,100,36], 1), P("SYNC BASS", [0,1,5,64,44,8,0,40], [0,63,90,36], 1),
-        P("SAW BASS", [1,1,2,64,10,9,0,10], [0,63,84,36], 1), P("DIRTY BASS", [0,1,1,64,38,11,0,90], [0,69,70,36], 1),
-        P("LEAD 6581", [0,1,1,64,60,9,0,40], [0,69,110,57], 1), P("RING LEAD", [1,0,6,64,127,0,7,0], [0,69,110,57], 1),
-        P("SYNC LEAD", [1,1,5,64,100,6,0,0], [0,69,110,57], 1), P("PULSE LEAD", [0,2,1,26,70,8,0,50], [0,63,110,49], 1),
-        P("GAME HERO", [0,2,3,50,127,0,7,0], [0,57,100,49], 1), P("LASER LEAD", [1,6,5,72,100,6,0,0], [0,63,100,36], 1),
-        P("CHIP SOLO", [0,5,1,40,127,0,7,0], [0,69,110,57], 1), P("8580 LEAD", [1,4,1,64,110,4,0,0], [0,69,110,57], 1),
-        P("PWM PAD", [0,2,1,46,66,6,0,20], [85,85,100,90], 0), P("SID STRINGS", [1,1,1,64,60,5,0,0], [90,85,110,97], 0),
-        P("DREAM CHIP", [0,0,4,64,127,0,7,0], [70,85,100,90], 0), P("8580 PAD", [1,4,1,64,70,6,4,0], [85,90,104,97], 0),
-        P("TRI ORGAN", [1,0,2,64,127,0,7,0], [0,36,127,36], 0), P("GAME ORGAN", [0,2,3,64,127,0,7,0], [0,36,118,36], 0),
-        P("C64 KEYS", [1,6,0,58,70,4,0,20], [0,85,60,63], 0), P("SID CLAV", [1,2,0,20,40,10,1,30], [0,57,20,49], 0),
-        P("ARP PLUCK", [0,1,4,64,50,12,0,40], [0,57,0,49], 0), P("COIN PLUCK", [1,2,2,32,127,0,7,0], [0,63,0,57], 0),
-        P("BELL RING", [1,0,6,64,127,0,7,0], [0,97,0,97], 0), P("SID BRASS", [0,1,3,64,46,8,0,40], [49,78,100,63], 0),
-        P("FILTER HIT", [0,1,0,64,40,15,1,70], [0,63,0,57], 0), P("LASER FX", [1,2,5,82,96,8,0,0], [0,78,40,69], 1),
-        P("NOISE SWEEP", [0,3,0,64,40,12,1,60], [63,97,40,97], 0), P("DATA STORM", [1,3,1,64,80,10,0,40], [0,85,60,78], 0)] },
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},   /* 5: retired VOICE; stored ID reserved */
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},
-    { name: "DRUM", titles: ["KIT", "HIT"], edit: [D("KIT", F.ENUM, 4, 5, 4, ["808","909"]), D("TUNE", F.PCT, 0, 127, 64),
-        D("TONE", F.PCT, 0, 127, 64), D("DECY", F.PCT, 0, 127, 64), D("SNAP", F.PCT, 0, 127, 64), D("ACC", F.PCT, 0, 127, 100),
-        E("KICK", ["PUNCH", "ROUND"], 0), D("DRV", F.PCT, 0, 127, 0)],
-      presets: [P("808 KIT", [4, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0),P("909 KIT", [5, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0)] },
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},   /* 11: retired NOISE; stored ID reserved */
-    { name: "FM6", titles: ["OPS", "PATCH"], edit: [D("ALG", F.INT, 0, 32, 0), D("FB", F.INT, -7, 7, 0), D("MLVL", F.BIPCT, -64, 63, 0),
-        D("MRAT", F.INT, -16, 16, 0), D("MEG", F.BIPCT, -64, 63, 0), D("VMOD", F.INT, -7, 7, 0), D("DTUN", F.PCT, 0, 127, 0),
-        NONE],
-      presets: [P("TINE EP", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("BELL", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("FM BASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1), P("BRASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("PAD", [0, 0, 0, 0, 0, 0, 30, 0], [0, 0, 127, 0], 0), P("MARIMBA", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("ORGAN", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("PLUCK", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("DX TINE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("BRASS SECT", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("SOLID BASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1),
-        P("BELLS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("DX MARIMBA", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("CLAVINET", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("DRAWBARS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("STRINGS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("GLASS PAD", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("SYNC LEAD", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1),
-        P("HARP", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("KALIMBA", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("FLUTE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1),
-        P("STEEL DRUM", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("SAW BASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1),
-        P("TUBULAR", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0),
-        P("INIT VOICE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0)] },   // the DX7 init voice, after F24
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},
-    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]},
-    {name:"CZ-1",titles:["CZ-1","TONE"],edit:[D("-",F.INT,0,7,0),D("-",F.INT,0,16,0),...Array(5).fill(NONE),D("TONE",F.INT,2,2,2)],
-      presets:[P("INIT TONE",[0,0,0,0,0,0,0,2],[0,70,127,60],0),   // + Casio's 64 CZ-1 preset tones: BANK A..D, PTCH 1..16
-        ...["BRASS 1","BRASS 2","BRASS 3","STRINGS 1","STRINGS 2","STRINGS 3","STRINGS 4","ORCHESTRA","ACO.GUITAR","JAZZ GUITAR","ELEC.GUITAR","SLAP BASS","SYNTH.BASS","ELEC.BASS 1","ELEC.BASS 2","HARP","BRASS 4","SAXOPHONE","CELLO","FLUTE","WHISTLE","HARMONICA","RECORDER","KOTO","PIANO 1","PIANO 2","PIANO 3","ELEC.PIANO","HONKY-TONK","FUNKY CLAV 1","FUNKY CLAV 2","HARPSICHORD","JAZZ ORGAN 1","JAZZ ORGAN 2","PIPE ORGAN 1","PIPE ORGAN 2","ACCORDION","VOICE 1","VOICE 2","VOICE 3","MUSIC BOX","VIBRAPHONE","XYLOPHONE","MARIMBA","MALLET LOG","AFRO PERC","BELLS","METALLIC","SYN STRINGS","FAT ENSEMBLE","SITAR","SYNTH.LEAD 1","SYNTH.LEAD 2","SYNTH.LEAD 3","SYNTH.LEAD 4","SWEEP 1","SYN DRUMS 1","SYN DRUMS 2","CONGA","STEEL DRUM","SWEEP 2","JET ROAR","MOTORCYCLE","TYPHOON"]
-          .map((n,k)=>P(n,[k>>4,(k&15)+1,0,0,0,0,0,2],[0,70,127,60],0,+"4445555533322223443344336666666666556555777773775534444533375555"[k]))]},
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 0: retired; stored ID reserved */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 1: retired; stored ID reserved */,
+    {name:"PHASE",titles:["PHS", "LINE"],edit:[
+            D("WAVE", F.ENUM, 0, 7, 0, ["SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"]),
+            D("WAVE2", F.ENUM, 0, 8, 0, ["-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"]),
+            D("DCW", F.PCT, 0, 127, 60),
+            D("ENV", F.PCT, 0, 127, 64),
+            D("DTN", F.INT, 0, 127, 0, null, "ct"),
+            D("LINE", F.ENUM, 0, 1, 0, ["MIX", "RING"]),
+            D("SUB", F.PCT, 0, 127, 0),
+            D("FOLD", F.PCT, 0, 127, 0)],presets:[
+            P("BRASS", [0, 0, 30, 90, 0, 0, 0, 0], [8, 70, 90, 40], 0), P("ORGAN", [3, 0, 40, 0, 0, 0, 0, 0], [0, 127, 127, 30], 0), P("STRING", [0, 4, 50, 40, 12, 0, 0, 0], [40, 90, 100, 70], 0), P("RESO", [5, 0, 60, 60, 0, 0, 0, 0], [0, 70, 30, 60], 0), P("BELL", [6, 0, 80, 50, 0, 0, 0, 0], [0, 95, 0, 90], 0), P("WIRE", [4, 7, 70, 40, 7, 0, 0, 0], [10, 80, 80, 60], 0)]}   /* 2 */,
+    {name:"SID",titles:["CHIP", "FILTER"],edit:[
+            D("MODEL", F.ENUM, 0, 1, 0, ["6581", "8580"]),
+            D("WAVE", F.ENUM, 0, 7, 1, ["TRI", "SAW", "PULSE", "NOISE", "TRI+SAW", "TRI+PLS", "SAW+PLS", "T+S+P"]),
+            D("STACK", F.ENUM, 0, 7, 0, ["ONE", "DETUNE", "OCT", "FIFTH", "MAJOR", "SYNC", "RING", "SUB"]),
+            D("PW", F.PCT, 0, 127, 64),
+            D("CUT", F.PCT, 0, 127, 127),
+            D("RES", F.INT, 0, 15, 0),
+            D("MODE", F.ENUM, 0, 7, 0, ["LP", "BP", "HP", "NOTCH", "LP+BP", "BP+HP", "ALL", "OFF"]),
+            D("DRIVE", F.PCT, 0, 127, 0)],presets:[
+            P("INIT SID", [0, 1, 0, 64, 127, 0, 0, 0], [0, 36, 127, 36], 0), P("BREADBOX", [0, 2, 1, 40, 60, 6, 0, 30], [0, 78, 100, 57], 0), P("RUBBER BASS", [0, 2, 7, 30, 36, 10, 0, 40], [0, 63, 60, 36], 1), P("ARP BASS", [0, 2, 0, 48, 34, 12, 0, 30], [0, 57, 40, 0], 1), P("SUB PULSE", [1, 2, 7, 64, 14, 4, 0, 0], [0, 69, 100, 36], 1), P("SYNC BASS", [0, 1, 5, 64, 44, 8, 0, 40], [0, 63, 90, 36], 1), P("SAW BASS", [1, 1, 2, 64, 10, 9, 0, 10], [0, 63, 84, 36], 1), P("DIRTY BASS", [0, 1, 1, 64, 38, 11, 0, 90], [0, 69, 70, 36], 1), P("LEAD 6581", [0, 1, 1, 64, 60, 9, 0, 40], [0, 69, 110, 57], 1), P("RING LEAD", [1, 0, 6, 64, 127, 0, 7, 0], [0, 69, 110, 57], 1), P("SYNC LEAD", [1, 1, 5, 64, 100, 6, 0, 0], [0, 69, 110, 57], 1), P("PULSE LEAD", [0, 2, 1, 26, 70, 8, 0, 50], [0, 63, 110, 49], 1), P("GAME HERO", [0, 2, 3, 50, 127, 0, 7, 0], [0, 57, 100, 49], 1), P("LASER LEAD", [1, 6, 5, 72, 100, 6, 0, 0], [0, 63, 100, 36], 1), P("CHIP SOLO", [0, 5, 1, 40, 127, 0, 7, 0], [0, 69, 110, 57], 1), P("8580 LEAD", [1, 4, 1, 64, 110, 4, 0, 0], [0, 69, 110, 57], 1), P("PWM PAD", [0, 2, 1, 46, 66, 6, 0, 20], [85, 85, 100, 90], 0), P("SID STRINGS", [1, 1, 1, 64, 60, 5, 0, 0], [90, 85, 110, 97], 0), P("DREAM CHIP", [0, 0, 4, 64, 127, 0, 7, 0], [70, 85, 100, 90], 0), P("8580 PAD", [1, 4, 1, 64, 70, 6, 4, 0], [85, 90, 104, 97], 0), P("TRI ORGAN", [1, 0, 2, 64, 127, 0, 7, 0], [0, 36, 127, 36], 0), P("GAME ORGAN", [0, 2, 3, 64, 127, 0, 7, 0], [0, 36, 118, 36], 0), P("C64 KEYS", [1, 6, 0, 58, 70, 4, 0, 20], [0, 85, 60, 63], 0), P("SID CLAV", [1, 2, 0, 20, 40, 10, 1, 30], [0, 57, 20, 49], 0), P("ARP PLUCK", [0, 1, 4, 64, 50, 12, 0, 40], [0, 57, 0, 49], 0), P("COIN PLUCK", [1, 2, 2, 32, 127, 0, 7, 0], [0, 63, 0, 57], 0), P("BELL RING", [1, 0, 6, 64, 127, 0, 7, 0], [0, 97, 0, 97], 0), P("SID BRASS", [0, 1, 3, 64, 46, 8, 0, 40], [49, 78, 100, 63], 0), P("FILTER HIT", [0, 1, 0, 64, 40, 15, 1, 70], [0, 63, 0, 57], 0), P("LASER FX", [1, 2, 5, 82, 96, 8, 0, 0], [0, 78, 40, 69], 1), P("NOISE SWEEP", [0, 3, 0, 64, 40, 12, 1, 60], [63, 97, 40, 97], 0), P("DATA STORM", [1, 3, 1, 64, 80, 10, 0, 40], [0, 85, 60, 78], 0)]}   /* 3 */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 4: retired; stored ID reserved */,
+    {name:"VOICE",titles:["VOWL", "TONE"],edit:[
+            D("VOWL", F.INT, 0, 127, 0),
+            D("VOWL2", F.INT, 0, 127, 64),
+            D("TALK", F.TIME, 0, 127, 0),
+            D("SHIFT", F.SEMI, -12, 12, 0),
+            D("BUZZ", F.PCT, 0, 127, 64),
+            D("BRTH", F.PCT, 0, 127, 10),
+            D("Q", F.PCT, 0, 127, 64),
+            D("RAND", F.PCT, 0, 127, 0)],presets:[
+            P("CHOIR AAH", [0, 0, 0, 0, 40, 22, 60, 0], [85, 90, 115, 95], 0), P("VOX LEAD", [32, 0, 0, 2, 90, 8, 72, 0], [6, 70, 105, 55], 1), P("WOW BASS", [95, 0, 68, 0, 100, 0, 80, 0], [0, 70, 70, 30], 1), P("WHISPER", [0, 95, 88, 3, 50, 120, 50, 0], [50, 90, 110, 90], 0)]}   /* 5 */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 6: retired; stored ID reserved */,
+    {name:"WHEEL",titles:["BARS", "TONE"],edit:[
+            D("REG", F.ENUM, 0, 15, 4, ["FLUTE", "MELLO", "HOLLW", "SMOOT", "3BAR", "BLUES", "GOSPL", "ROCK", "TOPS", "CLARI", "REED", "STRNG", "CHAPL", "BRITE", "BASS", "FULL"]),
+            D("SUB", F.INT, -8, 8, 0),
+            D("BODY", F.INT, -8, 8, 0),
+            D("TOP", F.INT, -8, 8, 0),
+            D("PERC", F.ENUM, 0, 6, 0, ["OFF", "2ND", "3RD", "2SOFT", "3SOFT", "2SLOW", "3SLOW"]),
+            D("CLICK", F.PCT, 0, 127, 40),
+            D("DRV", F.PCT, 0, 127, 0),
+            D("ROTR", F.ENUM, 0, 2, 1, ["OFF", "SLOW", "FAST"])],presets:[
+            P("FULL ORGAN", [15, 0, 0, 0, 0, 30, 20, 1], [0, 64, 127, 45], 0), P("JAZZ PERC", [4, 0, 0, 0, 2, 50, 8, 1], [0, 64, 127, 40], 0), P("GOSPEL", [6, 0, 0, 0, 1, 60, 40, 2], [0, 64, 127, 45], 0), P("SOFT FLUTE", [1, 0, -2, 0, 0, 10, 0, 1], [0, 64, 127, 55], 0), P("ROCK DRIVE", [7, 0, 0, 0, 0, 70, 100, 2], [0, 64, 127, 40], 0)]}   /* 7 */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 8: retired; stored ID reserved */,
+    {name:"PHYS",titles:["BODY", "EXCT"],edit:[
+            D("MODEL", F.ENUM, 0, 3, 0, ["MODAL", "STRNG", "MEMB", "SYMP"]),
+            D("STRC", F.PCT, 0, 127, 64),
+            D("BRIT", F.PCT, 0, 127, 80),
+            D("DAMP", F.PCT, 0, 127, 80),
+            D("POS", F.PCT, 0, 127, 20),
+            D("ACC", F.PCT, 0, 127, 90),
+            D("BOW", F.PCT, 0, 127, 0),
+            D("EXC", F.PCT, 0, 127, 0)],presets:[
+            P("BELL TREE", [0, 70, 100, 106, 12, 100, 0, 6], [0, 100, 127, 96], 0), P("MARIMBA", [0, 116, 38, 40, 24, 90, 0, 30], [0, 90, 127, 52], 0), P("PLUCK", [1, 56, 72, 84, 40, 96, 0, 0], [0, 100, 127, 58], 0), P("BOWED METAL", [0, 98, 70, 112, 10, 80, 90, 0], [60, 90, 127, 90], 0), P("KALIMBA", [0, 34, 16, 56, 100, 90, 0, 48], [0, 100, 127, 60], 0), P("HAND DRUM", [2, 112, 76, 56, 44, 100, 14, 24], [0, 100, 127, 64], 0), P("TOMS", [2, 0, 52, 40, 30, 100, 40, 30], [0, 100, 127, 70], 0), P("DRONE STRING", [3, 127, 80, 88, 64, 100, 92, 0], [0, 100, 127, 90], 0), P("HARP", [3, 8, 62, 74, 60, 90, 0, 0], [0, 100, 127, 80], 0)]}   /* 9 */,
+    {name:"DRUM",titles:["KIT", "HIT"],edit:[
+            D("KIT", F.ENUM, 4, 5, 4, ["808", "909"]),
+            D("TUNE", F.PCT, 0, 127, 64),
+            D("TONE", F.PCT, 0, 127, 64),
+            D("DECY", F.PCT, 0, 127, 64),
+            D("SNAP", F.PCT, 0, 127, 64),
+            D("ACC", F.PCT, 0, 127, 100),
+            D("KICK", F.ENUM, 0, 1, 0, ["PUNCH", "ROUND"]),
+            D("DRV", F.PCT, 0, 127, 0)],presets:[
+            P("808 KIT", [4, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0), P("909 KIT", [5, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0)]}   /* 10 */,
+    {name:"NOISE",titles:["SRC", "MOVE"],edit:[
+            D("MODE", F.ENUM, 0, 3, 0, ["ANLG", "DUST", "LFSR", "META"]),
+            D("COLR", F.PCT, 0, 127, 64),
+            D("FREQ", F.CUTOFF, 0, 127, 80),
+            D("RES", F.PCT, 0, 127, 30),
+            D("TRK", F.PCT, 0, 127, 64),
+            D("DENS", F.PCT, 0, 127, 0),
+            D("DRFT", F.PCT, 0, 127, 0),
+            D("CRSH", F.PCT, 0, 127, 0)],presets:[
+            P("WIND", [0, 64, 70, 100, 127, 0, 70, 0], [90, 90, 110, 90], 0), P("RAIN", [1, 30, 88, 80, 64, 105, 40, 0], [10, 90, 127, 70], 0), P("ARCADE", [2, 0, 127, 0, 127, 112, 0, 84], [0, 80, 0, 50], 0), P("METAL", [3, 0, 100, 40, 100, 32, 0, 0], [0, 75, 40, 60], 0)]}   /* 11 */,
+    {name:"FM6",titles:["OPS", "PATCH"],edit:[
+            D("ALG", F.INT, 0, 32, 0),
+            D("FB", F.INT, -7, 7, 0),
+            D("MLVL", F.BIPCT, -64, 63, 0),
+            D("MRAT", F.INT, -16, 16, 0),
+            D("MEG", F.BIPCT, -64, 63, 0),
+            D("VMOD", F.INT, -7, 7, 0),
+            D("DTUN", F.PCT, 0, 127, 0),
+            D("-", F.INT, 0, 0, 0)],presets:[
+            P("TINE EP", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("BELL", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("FM BASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1), P("BRASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("PAD", [0, 0, 0, 0, 0, 0, 30, 0], [0, 0, 127, 0], 0), P("MARIMBA", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("ORGAN", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("PLUCK", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("DX TINE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("BRASS SECT", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SOLID BASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1), P("BELLS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("DX MARIMBA", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("CLAVINET", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("DRAWBARS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("STRINGS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("GLASS PAD", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SYNC LEAD", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1), P("HARP", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("KALIMBA", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("FLUTE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1), P("STEEL DRUM", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SAW BASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 1), P("TUBULAR", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("INIT VOICE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0)]}   /* 12 */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 13: retired; stored ID reserved */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 14: retired; stored ID reserved */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 15: retired; stored ID reserved */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 16: retired; stored ID reserved */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 17: retired; stored ID reserved */,
+    {name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]}   /* 18: retired; stored ID reserved */,
+    {name:"PROPHET",titles:["FILTER/TUNE", "PW/MIX"],edit:[
+            D("CUT", F.INT, -63, 63, 0),
+            D("RES", F.INT, -63, 63, 0),
+            D("TUNA", F.SEMI, -24, 24, 0),
+            D("TUNB", F.SEMI, -24, 24, 0),
+            D("PWA", F.INT, -63, 63, 0),
+            D("PWB", F.INT, -63, 63, 0),
+            D("MIXA", F.INT, -63, 63, 0),
+            D("MIXB", F.INT, -63, 63, 0)],presets:[
+            P("INIT PROPHET", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("It's a Prophet 5", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("After Ringer", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Forever Keys", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Funk Bass II", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Formant Seraphim", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Stabby Brass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("No Whining", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Fantastic Five", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Velocipeed", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("PDG Organ", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Clavicle", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Blow by Blow", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("TaariChoir", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Digi-Recorder", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Reedy String Pad", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Canned Happiness", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Synchrotrill", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Born in the 80's", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Sticky Plucks", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Watery Plucks", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Bass Face", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Antique Bell", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Whiny Opener", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Synctink", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Trembling Organ", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Sci-Fi Echo", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Unicorn Dreams", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Cocktail Hour", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Nice n Smooth", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Tumescent Bass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Internalized", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Blinker Bells", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pickle Pincher", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Underwater Trill", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Fairy Dust", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("The Hats", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Congo Bongo", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SurdoTaiko", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Punchy Bells", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Mindfull", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Poly McFat", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Tangerine Chrch Thm", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Reed EP", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Cars Strings", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pipe Organisation", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Fat Poly Bass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Choral Voices", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Small Gong", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Another Ocean", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pedaling Sweep", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Hum-Along Solo", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Fat Bass Stack", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Afterblow Horn", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Midnight PWM", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Hyper Poly", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Ripples", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Aggro Synth", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("No Parking Swell", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Radio Towers", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Harpsi-Vibe", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Instability Pad", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Vintage Wurly", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Phazy Synth", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Robot Hamsters", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pressure Points", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("80s Horror Strings", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("NurseryComp", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("House Mover", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Carillons", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Vocal Pad", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Soft Moving Brass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Squarecliff", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("J3 808", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("CATS MEOW", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Morse Code Lead", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("DOG", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Under The Ice", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Distant Future", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Marimba", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Duotone", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pulse Pluck", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Unisawyer", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Recorder", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Hoof Gelatin", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Ghostly Glow", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Uptight Bass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Ravecave", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Dirty Lead", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Celtic Moon", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Hollow Dreams", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Furry Tines", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Mouse Blaster", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Kyoto", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pink Neon Brass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Organ Perc", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Skreamer Solo", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Dream of Orgonon", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Bistro", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Impact Bass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pluck Hollow", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Velo Res Lead 2", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Soft Brass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Regal Movement", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Loose Squares", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("High Strings", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Harpsicrud", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Rubber Bumper", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Galvanized Bucket", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Soft Swell", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Reverberant Strings", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Lagoon Bass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pluckity Duck", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Bell Tree", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Riser Chord", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Timpanally", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Rod Strike", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Tuned Percussion", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Mystery Bell", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("FM Clarinet", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Funky Rev1 Bells", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Sitarama", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("FedBack", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Nylon Fingers", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Gamelan", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Sparkle Ponies", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Marrakesh Radio C", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Faint Memories", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Full Hexagon", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Old String Machine", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Mantel Clock", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Iconic Brass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Sync Swellpad", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pretty Pluck", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("House Vibez", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Feature My Bass", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("ChorusLayer", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Better Ways", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Night Caller", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Bassment", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("After the Denouement", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Rewind", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Syncwave", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Organizer", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Maneater Ping", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Leslied", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Bull By The Horns", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Naive Melody", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Poly Morgue", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Busted and Dusted", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Switchback", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Tight Bass (556?)", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Pluckyness", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("80s Sci Fi Drop", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Catfood", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Houndstooth", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Cyberian Winds", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Ominous Bellfall", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("FM Pluck", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("Metal Dronespace", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("End Credits", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("BRASS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("LOW STRINGS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("MUTED CLAVINET", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("PERCUSSIVE E PIANO", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("FLUTES", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("HARPSICHORD", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SYNC I", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("PERCUSSIVE ORGAN", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("UNISON GLIDE W RES", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("HARMONIUM", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("ORGAN W RESONANCE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("TOY PIANO", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("TRUMPET FLUTE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("FILTER MOD", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("REED ORGAN", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("BASS IN FIFTHS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("PIPE ORGAN FLUTES", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SYNC II", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("ELECTRIC PIANO I", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("HIGH STRINGS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("OCTAVE SAWTEETH", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("RELEASE REPEAT", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("DELAYED HARMONIC", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("ECHO REPEAT", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("PULSE WIDTH MOD", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SLOW SYNC SWEEP", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("FOURTHS W RESONANCE", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SWEEPING HARMONICS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SLOW SYNC", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("RANDOM ARPEGGIATOR", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("SAWTOOTH ARPEGGIATOR", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("CLANGOROUS BELLS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("ALIEN", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("NOISE SWEEP", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("DESCENDING BELLS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("DESCENDING PWM", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("HELICOPTER", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("RESONANCE BELLS", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("HOLLOW SOUND", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0), P("CAT", [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 127, 0], 0)]}   /* 19 */
   ];
-  ENG.push(...Array.from({length:3},()=>({name:"-",titles:["-","-"],edit:Array(8).fill(NONE),presets:[]})),
-    {name:"PROPHET",titles:["FILTER/TUNE","PW/MIX"],edit:[D("CUT",F.INT,-63,63,0),D("RES",F.INT,-63,63,0),D("TUNA",F.SEMI,-24,24,0),D("TUNB",F.SEMI,-24,24,0),D("PWA",F.INT,-63,63,0),D("PWB",F.INT,-63,63,0),D("MIXA",F.INT,-63,63,0),D("MIXB",F.INT,-63,63,0)],presets:[P("INIT PROPHET",Array(8).fill(0),[0,0,127,0],0),   // + Sequential's 200 v1.03 programs
-      ...P5_FACTORY.map((b)=>P(P5.name(b),Array(8).fill(0),[0,0,127,0],0))]});
+  /* the last entries (retired slots + PROPHET) come straight from desc.json now — see tools/gen_editor_mock.py */
   const FM6_E = ENG.findIndex((e) => e.name === "FM6"), FM6_BANK = 0;
   /* the mock's demo sequences (the device powers on empty; it has no pattern library): absolute notes, 0 rest;
      flags 1 accent, 2 slide, 4 tie (holds the previous note). ACID, BEAT */
@@ -2696,8 +2730,7 @@ function aliasOf(names, i) { const k = names ? names.indexOf(names[i]) : -1; ret
 /* the order the device shows its engines in (src/engines.c ENGINE_ORDER): the lists here follow it, the protocol keeps
    the engine numbers. engineOrder(names): the indices of names in that order, "-" (a reserved number) left out; a name
    the list does not know (another firmware) follows in index order */
-const ENGINE_ORDER = ["PROPHET", "ANALOG", "FM6", "DIGITAL", "PHASE", "CZ-1", "SID", "VOICE", "NOISE",
-  "DRUM"];
+const ENGINE_ORDER = ["PROPHET", "ANALOG", "FM6", "DIGITAL", "PHASE", "SID", "VOICE", "WHEEL", "PHYS", "NOISE", "DRUM"];
 function engineOrder(names) {
   const rank = (n) => { const k = ENGINE_ORDER.indexOf(n); return k < 0 ? ENGINE_ORDER.length : k; };
   return (names || []).map((n, i) => i).filter((i) => !["-","SAMPLE","GRAIN","SLICE","OBXF"].includes(names[i])&&!(names.includes("PROPHET")&&names[i]==="ANALOG"))

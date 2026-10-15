@@ -41,13 +41,13 @@ int main(void)
     native_load(ENGI_FM6,63,0);fm6_pack(fm6_patch[0],got);
     bad+=check("native FM6 load keeps effects, modulation and pattern",!memcmp(got,fm,128) && TSEL->p[P_RESERVED33]==47 && TSEL->p[P_LD_PIT]==12 && TSEL->step[0].note[0]==60);
     uint32_t total,cur=eng_list_pos(&total);
-    bad+=check("F064 occupies the next ordinary preset position after factory tones",total==65 && cur==64 && user_of(TSEL)==64);
+    bad+=check("F064 occupies the next ordinary preset position after factory tones",total==26 && cur==25 && user_of(TSEL)==63);
     eng_list_step(1);bad+=check("ordinary engine preset scrolling wraps from F064 to INIT",TSEL->eng_req==ENGI_FM6 && TSEL->preset==0 && !TSEL->user);
-    eng_list_step(-1);bad+=check("ordinary engine preset scrolling returns to F064",TSEL->user==64 && !memcmp(fm6_patch[0],fm,128));
+    eng_list_step(-1);bad+=check("ordinary engine preset scrolling returns to F064",TSEL->user==64 && !memcmp(native_raw(ENGI_FM6,63),fm,128));
     cur=preset_all_pos(&total);uint32_t k,e=preset_all_at(cur,&k);
     bad+=check("global preset browser identifies native slots as user sounds",e==USER_NATIVE_FM && k==63);
     favorite_set(USER_NATIVE_FM,63,1);favorites.filter=1;
-    bad+=check("native presets participate in the regular favorites filter",preset_pos(&total)<2 && total==2);
+    bad+=check("native presets participate in the regular favorites filter",preset_pos(&total)<2 && total==1);
     preset_go(0);bad+=check("filtered global scrolling loads F064 directly",TSEL->eng_req==ENGI_FM6 && TSEL->user==64);
     settings_save();memset(&favorites,0,sizeof favorites);persist_t persisted;int n=st_load(OBJ_SETTINGS,&persisted,sizeof persisted);settings_import(&persisted,n);
     bad+=check("native favorites persist without changing the settings layout",favorite_has(USER_NATIVE_FM,63));favorites.filter=0;

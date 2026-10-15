@@ -44,7 +44,7 @@
 #define USER_NONE 256u
 #define ENGI_ANALOG 0u           /* retired in 1.2: never selectable (eng_ok), its stored sounds play silent */
 #define ENGI_DIGITAL 1u          /* retired: never selectable (eng_ok), its stored sounds play silent */
-#define NENG_SHOWN (NENGINES - 9u - !MELODEE_SLICE - 5u * !MELODEE_LEGACY_EXTRAS)   /* the engines one can pick: PRESETS, the EDIT
+#define NENG_SHOWN (NENGINES - 9u - !MELODEE_SLICE - 5u * !MELODEE_LEGACY_EXTRAS - 1u)   /* the engines one can pick: PRESETS, the EDIT
                                                 * layer, the editor, in the display order of engines.c ENGINE_ORDER (1971: TRIO
                                                 * always retired, one more off the always-hidden eight) */
 #define ENGI_SLICE 13u           /* reserved without MELODEE_SLICE: never selectable (eng_ok) */

@@ -115,14 +115,15 @@ static int preferences(void)
     uint32_t n = request(ED_INFO, a, 0);
     bad += check("INFO explicitly tags display capabilities after SONG without changing command 33",
         ED_SONG == 33 && ED_UI_STATE == 34 && ED_FAV_SET == 38 &&
-        host_wire[n - 41] == 0 && host_wire[n - 40] == 0x55 &&
-        host_wire[n - 39] == 1 && host_wire[n - 38] == 57 &&
-        host_wire[n - 37] == 0x4d && host_wire[n - 36] == 2 &&
-        host_wire[n - 35] == MOTION_MAX && host_wire[n - 34] == 1 &&
-        host_wire[n - 33] == 0x42 && host_wire[n - 32] == 1 && host_wire[n - 31] == 3 &&
-        host_wire[n - 30] == 0x50 && host_wire[n - 29] == 1 && host_wire[n - 28] == NPAT && host_wire[n - 27] == CHAIN_ROWS &&
-        host_wire[n - 26] == 0x46 && host_wire[n - 25] == 1 && host_wire[n - 24] == FM6_NFAC &&
-        host_wire[n - 23] == 0 && host_wire[n - 22]==0x43 && host_wire[n - 21]==1 && host_wire[n - 20]==16 && host_wire[n - 19]==1 && host_wire[n - 18]==0 && host_wire[n - 17]==0 && host_wire[n-16]==0x35 && host_wire[n-15]==1 && host_wire[n-14]==19 && host_wire[n-13]==16 && host_wire[n-12]==17 && host_wire[n-11]==18 && host_wire[n-10]==20 && host_wire[n-9]==0 && host_wire[n-8]==1 && host_wire[n-7]==0x4e && host_wire[n-6]==1 && host_wire[n-5]==64 && host_wire[n-4]==0 && host_wire[n-3]==0 && host_wire[n-2]==1);
+        host_wire[n - 34] == 0 && host_wire[n - 33] == 0x55 &&
+        host_wire[n - 32] == 1 && host_wire[n - 31] == 57 &&
+        host_wire[n - 30] == 0x4d && host_wire[n - 29] == 2 &&
+        host_wire[n - 28] == MOTION_MAX && host_wire[n - 27] == 1 &&
+        host_wire[n - 26] == 0x42 && host_wire[n - 25] == 1 && host_wire[n - 24] == 3 &&
+        host_wire[n - 23] == 0x50 && host_wire[n - 22] == 1 && host_wire[n - 21] == NPAT && host_wire[n - 20] == CHAIN_ROWS &&
+        host_wire[n - 19] == 0x46 && host_wire[n - 18] == 1 && host_wire[n - 17] == FM6_NFAC && host_wire[n - 16] == 0 &&
+        host_wire[n - 15] == 0x35 && host_wire[n - 14] == 1 && host_wire[n - 13] == 19 && host_wire[n - 12] == 16 && host_wire[n - 11] == 17 && host_wire[n - 10] == 20 && host_wire[n - 9] == 0 && host_wire[n - 8] == 1 &&
+        host_wire[n - 7] == 0x4e && host_wire[n - 6] == 1 && host_wire[n - 5] == 64 && host_wire[n - 4] == 0 && host_wire[n - 3] == 0 && host_wire[n - 2] == 0);
     request(ED_UI_SET, a, 2);
     bad += check("UI_SET updates the actual palette and reports RAM-only saving",
         host_wire[5] == 3 && settings.palette == 2 && T_BG == UI_PALETTES[2].bg);

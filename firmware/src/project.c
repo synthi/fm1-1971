@@ -810,7 +810,7 @@ static int template_used(void) { return tmpl.magic == TMPL_MAGIC && tmpl.size ==
 /* a stored template (len bytes, as tmpl_t is laid out) is today's: its size and magic, valid tones */
 static uint32_t tmpl_param_count(uint32_t len)
 {
-    return len==sizeof(tmpl_t)?P_COUNT:len==sizeof(tmpl_t)-16u?117u:len==sizeof(tmpl_t)-40u?116u:len==sizeof(tmpl_fx_single_t)?108u:len==sizeof(tmpl_fx_legacy_t)?104u:0u;
+    return len==sizeof(tmpl_t)?P_COUNT:0u;   /* (1971: the pre-CZ-removal layouts are gone; old records are refused) */
 }
 static uint32_t tmpl_blob_schema(const uint8_t *b,uint32_t len)
 {
